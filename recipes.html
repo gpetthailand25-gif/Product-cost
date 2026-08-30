@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คลังสูตร — ระบบต้นทุน NPD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1e3a5f;
+    --navy-dark:#152944;
+    --gray-bg:#f4f6f8;
+    --gray-border:#dfe4ea;
+    --gray-text:#5b6672;
+    --green:#1e8e5a;
+    --green-dark:#166b45;
+    --teal:#0f766e;
+    --teal-dark:#0b5a54;
+    --red:#c0392b;
+    --red-dark:#a3311f;
+    --amber:#b7791f;
+    --white:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Sarabun',sans-serif;
+    background:var(--gray-bg);
+    color:#1f2937;
+    font-variant-numeric: tabular-nums;
+  }
+  header.topbar{
+    background:var(--navy); color:#fff; padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+  header.topbar h1{font-size:17px; font-weight:600; margin:0; display:flex; align-items:center; gap:8px;}
+  header.topbar .actions{display:flex; gap:8px; flex-wrap:wrap;}
+  nav.subnav{background:var(--navy-dark); padding:0 24px; display:flex; gap:2px; flex-wrap:wrap;}
+  nav.subnav a{
+    color:rgba(255,255,255,0.75); text-decoration:none; font-size:13px;
+    padding:10px 14px; display:inline-block; border-bottom:2px solid transparent;
+  }
+  nav.subnav a.active{color:#fff; border-bottom-color:#fff; font-weight:600;}
+  nav.subnav a:hover{color:#fff;}
+
+  .btn{
+    border:none; border-radius:6px; padding:8px 16px; font-family:inherit;
+    font-size:13.5px; font-weight:600; cursor:pointer; transition:filter .15s ease;
+    white-space:nowrap; text-decoration:none; display:inline-block;
+  }
+  .btn:hover{filter:brightness(0.94);}
+  .btn:active{filter:brightness(0.88);}
+  .btn-green{background:var(--green); color:#fff;}
+  .btn-green:hover{background:var(--green-dark);}
+  .btn-teal{background:var(--teal); color:#fff;}
+  .btn-teal:hover{background:var(--teal-dark);}
+  .btn-red{background:var(--red); color:#fff;}
+  .btn-red:hover{background:var(--red-dark);}
+  .btn-ghost{background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.35);}
+  .btn-outline{background:#fff; color:var(--navy); border:1px solid var(--gray-border);}
+  .btn-outline:hover{background:#f0f3f6;}
+  .btn-sm{padding:5px 11px; font-size:12.5px;}
+
+  main{max-width:1180px; margin:0 auto; padding:20px 24px 80px;}
+
+  .card{background:var(--white); border:1px solid var(--gray-border); border-radius:10px; overflow:hidden; margin-bottom:20px;}
+  .card-head{
+    padding:14px 18px; border-bottom:1px solid var(--gray-border);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  .card-head h2{font-size:15px; margin:0; color:var(--navy); font-weight:600; display:flex; align-items:center; gap:8px;}
+  .card-head .hint{font-size:12px; color:var(--gray-text); font-weight:400;}
+  .card-body{padding:16px 18px;}
+
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
+  .search-wrap{position:relative; flex:1; min-width:220px;}
+  .search-wrap input{
+    width:100%; padding:9px 12px 9px 32px; border:1px solid var(--gray-border);
+    border-radius:8px; font-family:inherit; font-size:13.5px;
+  }
+  .search-wrap::before{content:"🔎"; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; opacity:.6;}
+
+  label{display:block; font-size:12px; color:var(--gray-text); margin-bottom:4px; font-weight:500;}
+  input[type=text], input[type=number]{
+    width:100%; padding:7px 9px; border:1px solid var(--gray-border);
+    border-radius:6px; font-family:inherit; font-size:13.5px; background:#fff; color:#1f2937;
+  }
+  input:focus{outline:2px solid var(--navy); outline-offset:0; border-color:var(--navy);}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.02em;
+    color:var(--gray-text); border-bottom:1px solid var(--gray-border);
+    padding:8px 8px; font-weight:600; white-space:nowrap;
+  }
+  tbody td{padding:7px 8px; border-bottom:1px solid #eef1f4; vertical-align:middle;}
+  tbody tr:hover{background:#fafbfc;}
+  tbody tr.editing-row{background:#eef4fb;}
+  .num{text-align:right;}
+  .num input{text-align:right;}
+  .table-wrap{overflow-x:auto;}
+  .row-actions{display:flex; gap:6px; white-space:nowrap;}
+  .row-del{background:none; border:none; color:var(--red); cursor:pointer; font-size:16px; line-height:1; padding:4px;}
+  .row-del:hover{color:var(--red-dark);}
+  .empty-state{padding:40px 20px; text-align:center; color:var(--gray-text); font-size:13.5px;}
+  .recipe-code{font-size:11.5px; color:var(--gray-text);}
+
+  .field-grid{display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:12px 16px; margin-bottom:16px;}
+  @media(max-width:760px){ .field-grid{grid-template-columns:1fr;} }
+
+  .add-row-btn{
+    margin-top:8px; font-size:12.5px; color:var(--navy); background:none;
+    border:1px dashed var(--gray-border); border-radius:6px; padding:6px 12px; cursor:pointer;
+  }
+  .add-row-btn:hover{background:#f0f3f6;}
+  tfoot td{padding:8px 8px; font-weight:600; border-top:2px solid var(--gray-border); color:var(--navy); font-size:12.5px;}
+  tfoot tr:last-child td{border-top:none; padding-top:4px; color:var(--gray-text); font-weight:400;}
+  tfoot tr:last-child td b{color:#1f2937; font-weight:700;}
+  .form-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:16px;}
+  .page-header-sticky{position:sticky; top:0; z-index:100;}
+</style>
+</head>
+<body>
+
+<div class="page-header-sticky">
+<header class="topbar">
+  <h1>📘 คลังสูตร (สูตรย่อยที่ใช้ซ้ำได้)</h1>
+  <div class="actions">
+    <a class="btn btn-ghost btn-sm" href="dashboard.html" style="text-decoration:none; color:#fff;">← สรุปรายการต้นทุน</a>
+  </div>
+</header>
+<nav class="subnav">
+  <a href="dashboard.html">สรุปรายการต้นทุน</a>
+  <a href="cost-detail.html">รายละเอียดต้นทุน</a>
+  <a href="materials.html">คลังวัตถุดิบ/บรรจุภัณฑ์</a>
+  <a href="trade-terms.html">เงื่อนไขห้าง</a>
+  <a href="overhead-allocation.html">ปันส่วนโสหุ้ย</a>
+  <a href="#" class="active">คลังสูตร</a>
+  <a href="labor-steps.html">คลังขั้นตอนการทำ</a>
+</nav>
+</div>
+
+<main>
+
+  <!-- ตารางคลังสูตร -->
+  <section class="card">
+    <div class="card-head">
+      <h2>รายการสูตร <span class="hint" id="countTag">(0 รายการ)</span></h2>
+      <button class="btn btn-green btn-sm" id="newBtn">+ เพิ่มสูตรใหม่</button>
+    </div>
+    <div class="card-body">
+      <div class="toolbar">
+        <div class="search-wrap"><input type="text" id="searchBox" placeholder="ค้นหาชื่อสูตร หรือ รหัส..."></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:16%">รหัส</th>
+            <th>ชื่อสูตร</th>
+            <th class="num" style="width:12%">ค่าสูญเสีย</th>
+            <th class="num" style="width:13%">ต้นทุน/กรัม</th>
+            <th style="width:200px"></th>
+          </tr></thead>
+          <tbody id="recipeBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none;">ยังไม่มีสูตรในคลัง — กด "+ เพิ่มสูตรใหม่" เพื่อเริ่มต้น</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ฟอร์มเพิ่ม/แก้ไขสูตร -->
+  <section class="card" id="formCard">
+    <div class="card-head">
+      <h2 id="formTitle">📝 เพิ่มสูตรใหม่</h2>
+      <span class="hint" id="editingHint"></span>
+    </div>
+    <div class="card-body">
+      <div class="field-grid">
+        <div><label>ชื่อสูตร</label><input type="text" id="f_name" placeholder="เช่น เนื้อแป้ง-คุกกี้เนย"></div>
+        <div><label>รหัสสูตร</label><input type="text" id="f_code" placeholder="เช่น WIP-CK-001"></div>
+        <div><label>ค่าสูญเสีย (%)</label><input type="number" step="0.01" id="f_waste" value="0"></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>รายการวัตถุดิบ</th><th class="num" style="width:11%">ราคา</th>
+            <th class="num" style="width:13%">น้ำหนัก/แพ็ค (ก.)</th><th class="num" style="width:11%">ราคา/กรัม</th>
+            <th class="num" style="width:10%">ใช้ (กรัม)</th><th class="num" style="width:12%">จำนวนเงิน</th><th style="width:26px"></th>
+          </tr></thead>
+          <tbody id="ingBody"></tbody>
+          <tfoot>
+            <tr><td colspan="4">รวม</td><td class="num"><b id="ingTotalWeight">0.00</b> ก.</td><td class="num" id="ingTotalMoney">0.00</td><td></td></tr>
+            <tr>
+              <td colspan="2">หลังค่าสูญเสีย <b id="wasteEcho">0.00</b>% → น้ำหนักสุทธิ <b id="netWeight">0.00</b> ก.</td>
+              <td></td>
+              <td class="num">ต้นทุน/กรัม <b id="costPerGram">0.00000</b></td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <button class="add-row-btn" id="addIngBtn">+ เพิ่มวัตถุดิบ</button>
+
+      <div class="form-actions">
+        <button class="btn btn-outline" id="cancelBtn">ยกเลิก</button>
+        <button class="btn btn-green" id="saveBtn">💾 บันทึกสูตร</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<datalist id="materialsList"></datalist>
+
+<script type="module">
+import {
+  collection, doc, getDocs, setDoc, addDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from "./firebase-config.js";
+
+const RECIPES_COL = "recipes";
+const MATERIALS_COL = "materials";
+const $ = (id) => document.getElementById(id);
+const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const fmt = (n) => (Math.round(n * 100) / 100).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt5 = (n) => (Math.round(n * 100000) / 100000).toFixed(5);
+
+let recipes = [];
+let materialsCache = [];
+let ingredients = [];   // form state: [{id,code,name,price,weightG,amountG}]
+let ingSeq = 0;
+let editingId = null;
+let searchTerm = "";
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeAttr(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+/* ---------------------------- load materials for autocomplete ---------------------------- */
+async function loadMaterials() {
+  if (!db) return;
+  try {
+    const snap = await getDocs(collection(db, MATERIALS_COL));
+    materialsCache = [];
+    snap.forEach(d => {
+      const m = { id: d.id, ...d.data() };
+      if (m.type !== "บรรจุภัณฑ์") materialsCache.push(m); // เฉพาะวัตถุดิบ
+    });
+    $("materialsList").innerHTML = materialsCache
+      .map(m => `<option value="${escapeAttr(m.name || "")}">`).join("");
+  } catch (e) {
+    console.warn("โหลดคลังวัตถุดิบไม่สำเร็จ", e);
+  }
+}
+function findMaterial(name) {
+  return materialsCache.find(m => m.name === name);
+}
+
+/* ---------------------------- load recipes ---------------------------- */
+async function loadRecipes() {
+  if (!db) { renderTable(); return; }
+  try {
+    const snap = await getDocs(collection(db, RECIPES_COL));
+    recipes = [];
+    snap.forEach(d => recipes.push({ id: d.id, ...d.data() }));
+    recipes.sort((a, b) => (a.code || a.name || "").localeCompare(b.code || b.name || "", "th"));
+  } catch (e) {
+    console.warn("โหลดคลังสูตรไม่สำเร็จ", e);
+  }
+  renderTable();
+}
+
+/* ---------------------------- table render ---------------------------- */
+function filteredRecipes() {
+  if (!searchTerm) return recipes;
+  const q = searchTerm.toLowerCase();
+  return recipes.filter(r => ((r.name || "") + " " + (r.code || "")).toLowerCase().includes(q));
+}
+
+function renderTable() {
+  const body = $("recipeBody");
+  body.innerHTML = "";
+  const list = filteredRecipes();
+  $("countTag").textContent = `(${list.length} รายการ)`;
+  $("emptyState").style.display = list.length === 0 ? "block" : "none";
+
+  list.forEach(r => {
+    const tr = document.createElement("tr");
+    if (r.id === editingId) tr.classList.add("editing-row");
+    tr.innerHTML = `
+      <td><span class="recipe-code">${escapeHtml(r.code || "-")}</span></td>
+      <td>${escapeHtml(r.name || "(ไม่มีชื่อ)")}</td>
+      <td class="num">${fmt(r.wastePercent || 0)}%</td>
+      <td class="num">${fmt5(r.costPerGram || 0)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn btn-outline btn-sm edit-btn">แก้ไข</button>
+          <button class="btn btn-teal btn-sm dup-btn">คัดลอก</button>
+          <button class="btn btn-red btn-sm del-btn">ลบ</button>
+        </div>
+      </td>
+    `;
+    tr.querySelector(".edit-btn").addEventListener("click", () => loadIntoForm(r));
+    tr.querySelector(".dup-btn").addEventListener("click", () => duplicateRecipe(r));
+    tr.querySelector(".del-btn").addEventListener("click", () => deleteRecipe(r));
+    body.appendChild(tr);
+  });
+}
+
+/* ---------------------------- ingredient rows (form) ---------------------------- */
+function addIngredientRow(ingData) {
+  const ing = ingData || { code: "", name: "", price: 0, weightG: 1, amountG: 0 };
+  const id = "i" + (++ingSeq);
+  const row = { id, ...ing };
+  ingredients.push(row);
+  renderIngredientRow(row);
+  return row;
+}
+
+function renderIngredientRow(row) {
+  const tr = document.createElement("tr");
+  tr.id = row.id;
+  tr.innerHTML = `
+    <td><input type="text" class="i-name" list="materialsList" value="${escapeAttr(row.name)}" placeholder="พิมพ์เพื่อค้นหา หรือเลือก"></td>
+    <td><input type="number" step="0.01" class="i-price" value="${row.price || 0}"></td>
+    <td><input type="number" step="0.01" class="i-weight" value="${row.weightG || 1}"></td>
+    <td><input type="text" class="i-ppg" value="0.0000" readonly></td>
+    <td><input type="number" step="0.01" class="i-amount" value="${row.amountG || 0}"></td>
+    <td><input type="text" class="i-money" value="0.00" readonly></td>
+    <td><button class="row-del i-del" title="ลบแถว">✕</button></td>
+  `;
+  $("ingBody").appendChild(tr);
+
+  const sync = () => {
+    row.name = tr.querySelector(".i-name").value;
+    row.price = num(tr.querySelector(".i-price").value);
+    row.weightG = num(tr.querySelector(".i-weight").value);
+    row.amountG = num(tr.querySelector(".i-amount").value);
+    calcRecipeTotals();
+  };
+  tr.querySelectorAll("input").forEach(inp => { if (!inp.readOnly) inp.addEventListener("input", sync); });
+  tr.querySelector(".i-name").addEventListener("change", (e) => {
+    const m = findMaterial(e.target.value);
+    if (m) {
+      row.code = m.code || "";
+      row.price = num(m.price);
+      row.weightG = num(m.packWeight || m.weight) || 1;
+      tr.querySelector(".i-price").value = row.price;
+      tr.querySelector(".i-weight").value = row.weightG;
+      calcRecipeTotals();
+    }
+  });
+  tr.querySelector(".i-del").addEventListener("click", () => {
+    ingredients = ingredients.filter(r => r.id !== row.id);
+    tr.remove();
+    calcRecipeTotals();
+  });
+}
+
+function calcRecipeTotals() {
+  let money = 0, weightUsed = 0;
+  ingredients.forEach(row => {
+    const tr = $(row.id);
+    if (!tr) return;
+    const ppg = row.weightG > 0 ? row.price / row.weightG : 0;
+    const amount = ppg * row.amountG;
+    tr.querySelector(".i-ppg").value = fmt5(ppg);
+    tr.querySelector(".i-money").value = fmt(amount);
+    money += amount;
+    weightUsed += row.amountG;
+  });
+  const wastePct = num($("f_waste").value);
+  const net = weightUsed * (1 - wastePct / 100);
+  const costPerGram = net > 0 ? money / net : 0;
+
+  $("ingTotalWeight").textContent = fmt(weightUsed);
+  $("ingTotalMoney").textContent = fmt(money);
+  $("wasteEcho").textContent = fmt(wastePct);
+  $("netWeight").textContent = fmt(net);
+  $("costPerGram").textContent = fmt5(costPerGram);
+
+  return { money, weightUsed, net, costPerGram };
+}
+
+$("f_waste").addEventListener("input", calcRecipeTotals);
+$("addIngBtn").addEventListener("click", () => { addIngredientRow(); calcRecipeTotals(); });
+
+/* ---------------------------- form load / reset ---------------------------- */
+function resetForm() {
+  editingId = null;
+  $("formTitle").textContent = "📝 เพิ่มสูตรใหม่";
+  $("editingHint").textContent = "";
+  $("f_name").value = "";
+  $("f_code").value = "";
+  $("f_waste").value = 0;
+  ingredients = [];
+  $("ingBody").innerHTML = "";
+  addIngredientRow();
+  calcRecipeTotals();
+  renderTable();
+}
+
+function loadIntoForm(r) {
+  editingId = r.id;
+  $("formTitle").textContent = "✏️ แก้ไขสูตร";
+  $("editingHint").textContent = `กำลังแก้ไข: ${r.name || ""}`;
+  $("f_name").value = r.name || "";
+  $("f_code").value = r.code || "";
+  $("f_waste").value = r.wastePercent || 0;
+
+  ingredients = [];
+  $("ingBody").innerHTML = "";
+  const items = r.ingredients || [];
+  if (items.length) {
+    items.forEach(i => addIngredientRow(i));
+  } else {
+    addIngredientRow();
+  }
+  calcRecipeTotals();
+  renderTable();
+  $("formCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ---------------------------- save / duplicate / delete ---------------------------- */
+function collectFormData() {
+  const totals = calcRecipeTotals();
+  return {
+    name: $("f_name").value.trim(),
+    code: $("f_code").value.trim(),
+    wastePercent: num($("f_waste").value),
+    ingredients: ingredients.map(i => ({ code: i.code, name: i.name, price: i.price, weightG: i.weightG, amountG: i.amountG })),
+    costPerGram: totals.costPerGram
+  };
+}
+
+$("saveBtn").addEventListener("click", async () => {
+  const data = collectFormData();
+  if (!data.name) {
+    alert("กรุณากรอกชื่อสูตรก่อนบันทึก");
+    return;
+  }
+  if (!db) {
+    alert("ยังไม่ได้ตั้งค่า Firebase (firebaseConfig) — กรุณาใส่ค่าคอนฟิกก่อนบันทึกจริง");
+    return;
+  }
+  const saveBtn = $("saveBtn");
+  const originalLabel = saveBtn.textContent;
+  saveBtn.textContent = "กำลังบันทึก...";
+  saveBtn.disabled = true;
+  try {
+    if (editingId) {
+      await setDoc(doc(db, RECIPES_COL, editingId), data, { merge: true });
+    } else {
+      await addDoc(collection(db, RECIPES_COL), data);
+    }
+    await loadRecipes();
+    resetForm();
+    saveBtn.textContent = "บันทึกแล้ว ✓";
+    setTimeout(() => { saveBtn.textContent = originalLabel; saveBtn.disabled = false; }, 1000);
+  } catch (e) {
+    console.error(e);
+    alert("บันทึกไม่สำเร็จ: " + e.message);
+    saveBtn.textContent = originalLabel;
+    saveBtn.disabled = false;
+  }
+});
+
+$("cancelBtn").addEventListener("click", resetForm);
+$("newBtn").addEventListener("click", () => {
+  resetForm();
+  $("formCard").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+async function duplicateRecipe(r) {
+  if (!db) {
+    alert("ยังไม่ได้ตั้งค่า Firebase (firebaseConfig) — กรุณาใส่ค่าคอนฟิกก่อนบันทึกจริง");
+    return;
+  }
+  const copy = {
+    name: (r.name || "") + " (คัดลอก)",
+    code: r.code ? r.code + "-COPY" : "",
+    wastePercent: r.wastePercent || 0,
+    ingredients: (r.ingredients || []).map(i => ({ ...i })),
+    costPerGram: r.costPerGram || 0
+  };
+  try {
+    await addDoc(collection(db, RECIPES_COL), copy);
+    await loadRecipes();
+  } catch (e) {
+    console.error(e);
+    alert("คัดลอกไม่สำเร็จ: " + e.message);
+  }
+}
+
+async function deleteRecipe(r) {
+  if (!confirm(`ลบสูตร "${r.name || "รายการนี้"}" ใช่หรือไม่? สินค้าที่เคยเลือกสูตรนี้จะไม่ถูกกระทบ (ค่าคัดลอกไว้แล้ว)`)) return;
+  if (db) {
+    try {
+      await deleteDoc(doc(db, RECIPES_COL, r.id));
+    } catch (e) {
+      console.error(e);
+      alert("ลบไม่สำเร็จ: " + e.message);
+      return;
+    }
+  }
+  recipes = recipes.filter(x => x.id !== r.id);
+  if (editingId === r.id) resetForm();
+  else renderTable();
+}
+
+/* ---------------------------- search ---------------------------- */
+$("searchBox").addEventListener("input", (e) => {
+  searchTerm = e.target.value;
+  renderTable();
+});
+
+/* ---------------------------- init ---------------------------- */
+(async function init() {
+  addIngredientRow();
+  await loadMaterials();
+  await loadRecipes();
+  calcRecipeTotals();
+})();
+</script>
+
+</body>
+</html>

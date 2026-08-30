@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ปันส่วนโสหุ้ยต่อชิ้น — ระบบต้นทุน NPD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1e3a5f;
+    --navy-dark:#152944;
+    --gray-bg:#f4f6f8;
+    --gray-border:#dfe4ea;
+    --gray-text:#5b6672;
+    --green:#1e8e5a;
+    --green-dark:#166b45;
+    --red:#c0392b;
+    --red-dark:#a3311f;
+    --amber:#b7791f;
+    --white:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Sarabun',sans-serif;
+    background:var(--gray-bg);
+    color:#1f2937;
+    font-variant-numeric: tabular-nums;
+  }
+  header.topbar{
+    background:var(--navy); color:#fff; padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+  header.topbar h1{font-size:17px; font-weight:600; margin:0; display:flex; align-items:center; gap:8px;}
+  header.topbar .actions{display:flex; gap:8px; flex-wrap:wrap;}
+  nav.subnav{background:var(--navy-dark); padding:0 24px; display:flex; gap:2px; flex-wrap:wrap;}
+  nav.subnav a{
+    color:rgba(255,255,255,0.75); text-decoration:none; font-size:13px;
+    padding:10px 14px; display:inline-block; border-bottom:2px solid transparent;
+  }
+  nav.subnav a.active{color:#fff; border-bottom-color:#fff; font-weight:600;}
+  nav.subnav a:hover{color:#fff;}
+
+  .btn{
+    border:none; border-radius:6px; padding:8px 16px; font-family:inherit;
+    font-size:13.5px; font-weight:600; cursor:pointer; transition:filter .15s ease;
+    white-space:nowrap; text-decoration:none; display:inline-block;
+  }
+  .btn:hover{filter:brightness(0.94);}
+  .btn:active{filter:brightness(0.88);}
+  .btn-green{background:var(--green); color:#fff;}
+  .btn-green:hover{background:var(--green-dark);}
+  .btn-red{background:var(--red); color:#fff;}
+  .btn-red:hover{background:var(--red-dark);}
+  .btn-ghost{background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.35);}
+  .btn-outline{background:#fff; color:var(--navy); border:1px solid var(--gray-border);}
+  .btn-outline:hover{background:#f0f3f6;}
+  .btn-sm{padding:5px 11px; font-size:12.5px;}
+
+  main{max-width:1180px; margin:0 auto; padding:20px 24px 80px;}
+
+  .card{background:var(--white); border:1px solid var(--gray-border); border-radius:10px; overflow:hidden;}
+  .card-head{
+    padding:14px 18px; border-bottom:1px solid var(--gray-border);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  .card-head h2{font-size:15px; margin:0; color:var(--navy); font-weight:600; display:flex; align-items:center; gap:8px;}
+  .card-body{padding:16px 18px;}
+  .hint-text{font-size:12.5px; color:var(--gray-text); margin:-6px 0 16px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.02em;
+    color:var(--gray-text); border-bottom:1px solid var(--gray-border);
+    padding:8px 8px; font-weight:600; white-space:nowrap;
+  }
+  tbody td{padding:6px 8px; border-bottom:1px solid #eef1f4; vertical-align:middle;}
+  tbody tr:hover{background:#fafbfc;}
+  tbody tr.dirty{background:#fff9ec;}
+  tbody tr.dirty:hover{background:#fff5e0;}
+  .num{text-align:right;}
+  .num input{text-align:right;}
+  .table-wrap{overflow-x:auto;}
+  td input{
+    width:100%; padding:7px 8px; border:1px solid var(--gray-border);
+    border-radius:6px; font-family:inherit; font-size:13px; background:#fff;
+  }
+  td input:focus{outline:2px solid var(--navy); outline-offset:0; border-color:var(--navy);}
+  td input[readonly]{background:#f1f4f7; color:#1f2937; font-weight:700;}
+  .row-actions{display:flex; gap:6px; white-space:nowrap;}
+  .empty-state{padding:40px 20px; text-align:center; color:var(--gray-text); font-size:13.5px;}
+  .add-row-btn{
+    margin-top:12px; font-size:13px; color:var(--navy); background:none;
+    border:1px dashed var(--gray-border); border-radius:6px; padding:8px 14px; cursor:pointer;
+  }
+  .add-row-btn:hover{background:#f0f3f6;}
+  .page-header-sticky{position:sticky; top:0; z-index:100;}
+</style>
+</head>
+<body>
+
+<div class="page-header-sticky">
+<header class="topbar">
+  <h1>⚙️ ปันส่วนโสหุ้ยต่อชิ้น</h1>
+  <div class="actions">
+    <a class="btn btn-ghost btn-sm" href="dashboard.html" style="text-decoration:none; color:#fff;">← สรุปรายการต้นทุน</a>
+  </div>
+</header>
+<nav class="subnav">
+  <a href="dashboard.html">สรุปรายการต้นทุน</a>
+  <a href="cost-detail.html">รายละเอียดต้นทุน</a>
+  <a href="materials.html">คลังวัตถุดิบ/บรรจุภัณฑ์</a>
+  <a href="trade-terms.html">เงื่อนไขห้าง</a>
+  <a href="#" class="active">ปันส่วนโสหุ้ย</a>
+  <a href="recipes.html">คลังสูตร</a>
+  <a href="labor-steps.html">คลังขั้นตอนการทำ</a>
+</nav>
+</div>
+
+<main>
+  <section class="card">
+    <div class="card-head">
+      <h2>ปันส่วนโสหุ้ยต่อชิ้น (ตามประเภทสินค้า) <span class="hint-text" id="countTag" style="margin:0; font-weight:400;">(0 ประเภท)</span></h2>
+      <button class="btn btn-green btn-sm" id="addBtn">+ เพิ่มประเภทสินค้า</button>
+    </div>
+    <div class="card-body">
+      <p class="hint-text">ค่าใช้จ่ายโรงงานรายเดือนหารด้วยจำนวนชิ้นที่ผลิตแต่ละประเภท — เครื่องคิดต้นทุนจะดึงค่าเหล่านี้ไปเป็นต้นทุนโสหุ้ยตามประเภทสินค้า</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:16%">ประเภท</th>
+            <th class="num">ค่าเช่า</th>
+            <th class="num">ค่าไฟฟ้า</th>
+            <th class="num">ค่าน้ำ</th>
+            <th class="num">ค่าเผื่อ</th>
+            <th class="num">ค่าขนส่ง</th>
+            <th class="num">รวม</th>
+            <th style="width:130px"></th>
+          </tr></thead>
+          <tbody id="allocBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none;">ยังไม่มีข้อมูลปันส่วนโสหุ้ย — กด "+ เพิ่มประเภทสินค้า" เพื่อเริ่มต้น</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import {
+  collection, doc, getDocs, setDoc, addDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from "./firebase-config.js";
+
+const ALLOC_COL = "overheadAllocations";
+const $ = (id) => document.getElementById(id);
+const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const fmt5 = (n) => (Math.round(n * 100000) / 100000).toFixed(5);
+
+let items = [];   // { id|null, category, rent, electric, water, allowance, shipping }
+let tempSeq = 0;
+
+function escapeAttr(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+/* ---------------------------- load ---------------------------- */
+async function loadItems() {
+  if (!db) { renderTable(); return; }
+  try {
+    const snap = await getDocs(collection(db, ALLOC_COL));
+    items = [];
+    snap.forEach(d => items.push({ id: d.id, ...d.data() }));
+    items.sort((a, b) => (a.category || "").localeCompare(b.category || "", "th"));
+  } catch (e) {
+    console.warn("โหลดข้อมูลปันส่วนโสหุ้ยไม่สำเร็จ", e);
+  }
+  renderTable();
+}
+
+/* ---------------------------- render ---------------------------- */
+function renderTable() {
+  const body = $("allocBody");
+  body.innerHTML = "";
+  $("countTag").textContent = `(${items.length} ประเภท)`;
+  $("emptyState").style.display = items.length === 0 ? "block" : "none";
+  items.forEach(item => body.appendChild(buildRow(item)));
+}
+
+function buildRow(item) {
+  const tr = document.createElement("tr");
+  const rowKey = item.id || item._tempKey;
+  tr.dataset.key = rowKey;
+  if (item._isNew) tr.classList.add("dirty");
+
+  tr.innerHTML = `
+    <td><input type="text" class="f-category" value="${escapeAttr(item.category || "")}" placeholder="เช่น ของสด, แช่แข็ง"></td>
+    <td class="num"><input type="number" step="0.0001" class="f-rent" value="${item.rent ?? 0}"></td>
+    <td class="num"><input type="number" step="0.0001" class="f-electric" value="${item.electric ?? 0}"></td>
+    <td class="num"><input type="number" step="0.0001" class="f-water" value="${item.water ?? 0}"></td>
+    <td class="num"><input type="number" step="0.0001" class="f-allowance" value="${item.allowance ?? 0}"></td>
+    <td class="num"><input type="number" step="0.0001" class="f-shipping" value="${item.shipping ?? 0}"></td>
+    <td class="num"><input type="text" class="f-total" value="0.0000" readonly></td>
+    <td>
+      <div class="row-actions">
+        <button class="btn btn-green btn-sm save-btn">บันทึก</button>
+        <button class="btn btn-red btn-sm del-btn">ลบ</button>
+      </div>
+    </td>
+  `;
+
+  const recalc = () => {
+    const total = num(tr.querySelector(".f-rent").value)
+      + num(tr.querySelector(".f-electric").value)
+      + num(tr.querySelector(".f-water").value)
+      + num(tr.querySelector(".f-allowance").value)
+      + num(tr.querySelector(".f-shipping").value);
+    tr.querySelector(".f-total").value = fmt5(total);
+  };
+
+  tr.querySelectorAll("input").forEach(inp => {
+    if (inp.readOnly) return;
+    inp.addEventListener("input", () => { tr.classList.add("dirty"); recalc(); });
+  });
+  recalc();
+
+  tr.querySelector(".save-btn").addEventListener("click", () => saveRow(item, tr));
+  tr.querySelector(".del-btn").addEventListener("click", () => deleteRow(item, tr));
+
+  return tr;
+}
+
+/* ---------------------------- save / delete ---------------------------- */
+async function saveRow(item, tr) {
+  const data = {
+    category: tr.querySelector(".f-category").value.trim(),
+    rent: num(tr.querySelector(".f-rent").value),
+    electric: num(tr.querySelector(".f-electric").value),
+    water: num(tr.querySelector(".f-water").value),
+    allowance: num(tr.querySelector(".f-allowance").value),
+    shipping: num(tr.querySelector(".f-shipping").value)
+  };
+
+  if (!data.category) {
+    alert("กรุณากรอกชื่อประเภทสินค้าก่อนบันทึก");
+    return;
+  }
+  if (!db) {
+    alert("ยังไม่ได้ตั้งค่า Firebase (firebaseConfig) — กรุณาใส่ค่าคอนฟิกก่อนบันทึกจริง");
+    return;
+  }
+
+  const saveBtn = tr.querySelector(".save-btn");
+  const originalLabel = saveBtn.textContent;
+  saveBtn.textContent = "กำลังบันทึก...";
+  saveBtn.disabled = true;
+
+  try {
+    if (item.id) {
+      await setDoc(doc(db, ALLOC_COL, item.id), data, { merge: true });
+      Object.assign(item, data);
+    } else {
+      const ref = await addDoc(collection(db, ALLOC_COL), data);
+      item.id = ref.id;
+      Object.assign(item, data);
+      delete item._isNew;
+    }
+    tr.classList.remove("dirty");
+    saveBtn.textContent = "บันทึกแล้ว ✓";
+    setTimeout(() => { saveBtn.textContent = originalLabel; saveBtn.disabled = false; }, 1200);
+  } catch (e) {
+    console.error(e);
+    alert("บันทึกไม่สำเร็จ: " + e.message);
+    saveBtn.textContent = originalLabel;
+    saveBtn.disabled = false;
+  }
+}
+
+async function deleteRow(item, tr) {
+  if (!confirm(`ลบข้อมูลปันส่วนโสหุ้ยของ "${item.category || "รายการนี้"}" ใช่หรือไม่?`)) return;
+
+  if (item.id && db) {
+    try {
+      await deleteDoc(doc(db, ALLOC_COL, item.id));
+    } catch (e) {
+      console.error(e);
+      alert("ลบไม่สำเร็จ: " + e.message);
+      return;
+    }
+  }
+  items = items.filter(it => (it.id || it._tempKey) !== (item.id || item._tempKey));
+  tr.remove();
+  $("countTag").textContent = `(${items.length} ประเภท)`;
+  $("emptyState").style.display = items.length === 0 ? "block" : "none";
+}
+
+/* ---------------------------- add new row ---------------------------- */
+$("addBtn").addEventListener("click", () => {
+  const newItem = {
+    id: null, _tempKey: "new" + (++tempSeq), _isNew: true,
+    category: "", rent: 0, electric: 0, water: 0, allowance: 0, shipping: 0
+  };
+  items.unshift(newItem);
+  renderTable();
+  const firstInput = $("allocBody").querySelector("tr .f-category");
+  if (firstInput) firstInput.focus();
+});
+
+loadItems();
+</script>
+
+</body>
+</html>

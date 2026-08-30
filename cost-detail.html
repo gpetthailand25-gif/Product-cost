@@ -1,0 +1,2148 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>รายละเอียดต้นทุน — ระบบต้นทุน NPD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1e3a5f;
+    --navy-dark:#152944;
+    --gray-bg:#f4f6f8;
+    --gray-border:#dfe4ea;
+    --gray-text:#5b6672;
+    --green:#1e8e5a;
+    --green-dark:#166b45;
+    --red:#c0392b;
+    --red-dark:#a3311f;
+    --amber:#b7791f;
+    --white:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Sarabun',sans-serif;
+    background:var(--gray-bg);
+    color:#1f2937;
+    font-variant-numeric: tabular-nums;
+  }
+  header.topbar{
+    background:var(--navy);
+    color:#fff;
+    padding:14px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  header.topbar h1{
+    font-size:17px;
+    font-weight:600;
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  header.topbar .actions{display:flex; gap:8px; flex-wrap:wrap;}
+  nav.subnav{background:var(--navy-dark); padding:0 24px; display:flex; gap:2px; flex-wrap:wrap;}
+  nav.subnav a{
+    color:rgba(255,255,255,0.75); text-decoration:none; font-size:13px;
+    padding:10px 14px; display:inline-block; border-bottom:2px solid transparent;
+  }
+  nav.subnav a.active{color:#fff; border-bottom-color:#fff; font-weight:600;}
+  nav.subnav a:hover{color:#fff;}
+  .btn{
+    border:none;
+    border-radius:6px;
+    padding:8px 16px;
+    font-family:inherit;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    transition:filter .15s ease;
+  }
+  .btn:hover{filter:brightness(0.94);}
+  .btn:active{filter:brightness(0.88);}
+  .btn-green{background:var(--green); color:#fff;}
+  .btn-green:hover{background:var(--green-dark);}
+  .btn-red{background:var(--red); color:#fff;}
+  .btn-red:hover{background:var(--red-dark);}
+  .btn-ghost{background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.35);}
+  .btn-outline{background:#fff; color:var(--navy); border:1px solid var(--gray-border);}
+  .btn-outline:hover{background:#f0f3f6;}
+  .btn-sm{padding:5px 10px; font-size:12.5px;}
+
+  main{max-width:1180px; margin:0 auto; padding:20px 24px 80px;}
+
+  .card{
+    background:var(--white);
+    border:1px solid var(--gray-border);
+    border-radius:10px;
+    margin-bottom:20px;
+    overflow:hidden;
+  }
+  .card-head{
+    padding:14px 18px;
+    border-bottom:1px solid var(--gray-border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .card-head h2{
+    font-size:15px;
+    margin:0;
+    color:var(--navy);
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card-head .hint{font-size:12px; color:var(--gray-text); font-weight:400;}
+  .card-body{padding:16px 18px;}
+
+  .field-grid{
+    display:grid;
+    grid-template-columns:repeat(4, minmax(140px,1fr));
+    gap:12px 16px;
+  }
+  @media(max-width:820px){ .field-grid{grid-template-columns:repeat(2, 1fr);} }
+
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--gray-text);
+    margin-bottom:4px;
+    font-weight:500;
+  }
+  input[type=text], input[type=number], select{
+    width:100%;
+    padding:7px 9px;
+    border:1px solid var(--gray-border);
+    border-radius:6px;
+    font-family:inherit;
+    font-size:13.5px;
+    background:#fff;
+    color:#1f2937;
+  }
+  input:focus, select:focus{outline:2px solid var(--navy); outline-offset:0; border-color:var(--navy);}
+  input[readonly]{background:#f1f4f7; color:#374151;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:left;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    color:var(--gray-text);
+    border-bottom:1px solid var(--gray-border);
+    padding:6px 8px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:5px 8px;
+    border-bottom:1px solid #eef1f4;
+    vertical-align:middle;
+  }
+  tbody tr:hover{background:#fafbfc;}
+  td input{padding:6px 7px; font-size:13px;}
+  .num{text-align:right;}
+  .table-wrap{overflow-x:auto;}
+  .row-del{
+    background:none; border:none; color:var(--red); cursor:pointer;
+    font-size:16px; line-height:1; padding:4px;
+  }
+  .row-del:hover{color:var(--red-dark);}
+  tfoot td{
+    padding:8px 8px;
+    font-weight:600;
+    border-top:2px solid var(--gray-border);
+    color:var(--navy);
+  }
+
+  .add-row-btn{
+    margin-top:8px;
+    font-size:12.5px;
+    color:var(--navy);
+    background:none;
+    border:1px dashed var(--gray-border);
+    border-radius:6px;
+    padding:6px 12px;
+    cursor:pointer;
+  }
+  .add-row-btn:hover{background:#f0f3f6;}
+
+  /* material/packaging search combo dropdown */
+  .search-results{
+    position:absolute; top:100%; left:0; right:0; z-index:50;
+    background:#fff; border:1px solid var(--gray-border); border-radius:6px;
+    box-shadow:0 6px 16px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto; margin-top:2px;
+  }
+  .search-results .sr-item{
+    padding:7px 10px; font-size:12.5px; cursor:pointer;
+    display:flex; justify-content:space-between; gap:10px; align-items:center;
+  }
+  .search-results .sr-item:hover{background:#eef4fb;}
+  .search-results .sr-name{color:#1f2937; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .search-results .sr-code{color:var(--gray-text); font-size:11px; white-space:nowrap;}
+  .search-results .sr-empty{padding:8px 10px; color:var(--gray-text); font-size:12px;}
+
+  .waste-line{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:10px;
+    padding:10px 12px;
+    background:var(--gray-bg);
+    border-radius:8px;
+    font-size:13px;
+    flex-wrap:wrap;
+  }
+  .waste-line label{margin:0; white-space:nowrap;}
+  .waste-line input{width:80px;}
+  .waste-line .readout{color:var(--gray-text);}
+  .waste-line .readout b{color:#1f2937;}
+
+  /* Summary card */
+  .summary-table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  .summary-table th{
+    text-align:right;
+    padding:8px 10px;
+    font-size:12px;
+    color:var(--gray-text);
+    border-bottom:1px solid var(--gray-border);
+  }
+  .summary-table th:first-child{text-align:left;}
+  .summary-table td{padding:8px 10px; border-bottom:1px solid #eef1f4; text-align:right;}
+  .summary-table td:first-child{text-align:left; color:#374151;}
+  .summary-table tr.total td{font-weight:700; color:var(--navy); border-top:2px solid var(--navy); border-bottom:none; font-size:14.5px;}
+  .summary-table tr.editable td:first-child{color:var(--gray-text);}
+  .summary-table input{text-align:right; max-width:130px; margin-left:auto;}
+  .pill{
+    display:inline-block; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600;
+  }
+  .pill-good{background:#e7f6ee; color:var(--green-dark);}
+  .pill-bad{background:#fbeceb; color:var(--red-dark);}
+
+  .status-msg{
+    font-size:12.5px; color:var(--gray-text); margin-top:6px;
+  }
+  .overhead-grid{display:grid; grid-template-columns:repeat(5, 1fr); gap:12px;}
+  @media(max-width:820px){ .overhead-grid{grid-template-columns:repeat(2,1fr);} }
+  .overhead-grid .rent-tag{font-size:10.5px; color:var(--amber); font-weight:600; display:block; margin-top:2px;}
+
+  /* Component cards (ส่วนประกอบ / สูตรย่อย) */
+  .component-card{
+    border:1px solid var(--gray-border);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:16px;
+    background:#fbfcfd;
+  }
+  .component-card:last-child{margin-bottom:0;}
+  .component-head{
+    display:grid;
+    grid-template-columns: 1.1fr 1.6fr 90px 100px 68px;
+    gap:10px;
+    align-items:end;
+    margin-bottom:12px;
+  }
+  @media(max-width:900px){ .component-head{grid-template-columns:1fr 1fr;} }
+  .component-card .table-wrap{background:#fff; border-radius:8px;}
+  .component-card tfoot td{font-size:12.5px;}
+  .component-card tfoot tr:first-child td{border-top:1px solid var(--gray-border); color:#374151; font-weight:600;}
+  .component-card tfoot tr:last-child td{border-top:none; padding-top:4px; color:var(--gray-text); font-weight:400;}
+  .component-card tfoot tr:last-child td b{color:#1f2937; font-weight:700;}
+  .component-card tfoot tr:last-child .c-contribution{color:var(--navy); font-weight:700; font-size:13.5px;}
+  .component-card .add-row-btn{margin-top:8px;}
+  .page-header-sticky{position:sticky; top:0; z-index:100;}
+
+  /* --- Production Yield & Actual Cost card --- */
+  .stat-mini{background:var(--gray-bg); border:1px solid var(--gray-border); border-radius:8px; padding:10px 12px;}
+  .stat-mini .label{font-size:11.5px; color:var(--gray-text); margin-bottom:4px;}
+  .stat-mini .val{font-size:19px; font-weight:700; color:var(--navy);}
+  .stat-mini .val.warn{color:var(--red-dark);}
+  .stat-mini .val.good{color:var(--green-dark);}
+  .stat-mini .sub{font-size:11px; color:var(--gray-text); margin-top:2px;}
+
+  details.accordion{
+    border:1px solid var(--gray-border); border-radius:8px; margin-top:12px; overflow:hidden; background:#fff;
+  }
+  details.accordion > summary{
+    padding:10px 14px; cursor:pointer; font-size:13.5px; font-weight:600; color:var(--navy);
+    list-style:none; display:flex; align-items:center; gap:6px; background:#fbfcfd;
+  }
+  details.accordion > summary::-webkit-details-marker{display:none;}
+  details.accordion > summary::before{content:"▸"; font-size:11px; transition:transform .15s ease;}
+  details.accordion[open] > summary::before{transform:rotate(90deg);}
+  details.accordion .accordion-body{padding:12px 14px;}
+
+  .cmp-table{width:100%; border-collapse:collapse; font-size:13px;}
+  .cmp-table th{text-align:right; font-size:11.5px; color:var(--gray-text); padding:6px 8px; border-bottom:1px solid var(--gray-border);}
+  .cmp-table th:first-child{text-align:left;}
+  .cmp-table td{padding:6px 8px; text-align:right; border-bottom:1px solid #eef1f4;}
+  .cmp-table td:first-child{text-align:left; color:#374151;}
+  .cmp-table tr.hi td{font-weight:700; color:var(--navy); border-top:1px solid var(--gray-border);}
+
+  .checkbox-row{display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:12.5px; color:#374151;}
+  .checkbox-row label{display:flex; align-items:center; gap:5px; margin:0; font-weight:400; color:#374151;}
+  .checkbox-row input[type=checkbox]{width:auto;}
+
+  .yield-mode-toggle{display:flex; gap:16px; flex-wrap:wrap; font-size:12.5px; color:#374151; margin-bottom:4px;}
+  .yield-mode-toggle label{display:flex; align-items:center; gap:5px; font-weight:500;}
+  .yield-mode-toggle input[type=radio]{width:auto;}
+
+  .loss-comp-section{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:10px;}
+  @media(max-width:820px){ .loss-comp-section{grid-template-columns:1fr;} }
+  .loss-comp-cat{background:var(--gray-bg); border:1px solid var(--gray-border); border-radius:8px; padding:10px 12px;}
+  .loss-comp-cat > b{font-size:12.5px; color:var(--navy); display:block; margin-bottom:6px;}
+  .loss-comp-list{display:flex; flex-direction:column; gap:5px; max-height:160px; overflow-y:auto;}
+  .loss-comp-list label{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; font-weight:400; color:#374151; margin:0; padding:2px 0;}
+  .loss-comp-list label .chk-name{display:flex; align-items:center; gap:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .loss-comp-list label input[type=checkbox]{width:auto; flex-shrink:0;}
+  .loss-comp-list .chk-val{flex-shrink:0; color:var(--gray-text); font-variant-numeric:tabular-nums;}
+  .loss-comp-list .empty{color:var(--gray-text); font-size:12px; padding:4px 0;}
+
+  .no-data-box{
+    padding:14px; text-align:center; color:var(--gray-text); font-size:13px;
+    background:var(--gray-bg); border-radius:8px; border:1px dashed var(--gray-border);
+  }
+
+  .bar-row{display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:12px;}
+  .bar-row .bar-label{width:110px; flex-shrink:0; color:var(--gray-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .bar-track{flex:1; background:var(--gray-bg); border-radius:4px; height:16px; overflow:hidden; display:flex;}
+  .bar-fill{height:100%; background:var(--navy); border-radius:4px;}
+  .bar-fill.alt{background:var(--green);}
+  .bar-val{width:60px; text-align:right; flex-shrink:0; color:#374151; font-weight:600;}
+
+  .print-only-header{display:none;}
+  .print-only-summary{display:none;}
+  @media print{
+    .print-only-summary{
+      display:flex; gap:0; margin:0 0 16px; border:1px solid #999; border-radius:6px; overflow:hidden;
+    }
+    .print-only-summary .seg{flex:1; padding:10px 12px; border-right:1px solid #ccc; text-align:center;}
+    .print-only-summary .seg:last-child{border-right:none;}
+    .print-only-summary .seg .lbl{font-size:10.5px; color:#555; margin-bottom:3px;}
+    .print-only-summary .seg .num{font-size:15px; font-weight:700; color:#111;}
+  }
+
+  @media print {
+    .page-header-sticky, .add-row-btn, button, input[type="file"] { display:none !important; }
+    .print-only-header{
+      display:block; margin:0 0 16px; padding-bottom:10px; border-bottom:2px solid #1f2937;
+    }
+    .print-only-header h1{font-size:18px; margin:0 0 4px; color:#111;}
+    .print-only-header p{font-size:12px; margin:0; color:#555;}
+    body{background:#fff;}
+    main{padding:0; max-width:100%;}
+    .card{border:1px solid #999; box-shadow:none; break-inside:avoid; margin-bottom:10px;}
+    input, select{border:none !important; background:transparent !important; color:#111 !important; padding:2px 0 !important;}
+    .component-card{background:#fff;}
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header-sticky">
+<header class="topbar">
+  <h1>🧮 รายละเอียดต้นทุน <span id="statusPill" class="pill" style="background:rgba(255,255,255,.15);color:#fff;">สินค้าใหม่</span></h1>
+  <div class="actions">
+    <a class="btn btn-ghost btn-sm" href="dashboard.html" style="text-decoration:none; color:#fff;">← สรุปรายการต้นทุน</a>
+    <button class="btn btn-outline btn-sm" id="exportExcelBtn">📊 Export Excel</button>
+    <button class="btn btn-outline btn-sm" id="printBtn">🖨️ พิมพ์ / PDF</button>
+    <button class="btn btn-green" id="saveBtn">💾 บันทึก</button>
+  </div>
+</header>
+<nav class="subnav">
+  <a href="dashboard.html">สรุปรายการต้นทุน</a>
+  <a href="#" class="active">รายละเอียดต้นทุน</a>
+  <a href="materials.html">คลังวัตถุดิบ/บรรจุภัณฑ์</a>
+  <a href="trade-terms.html">เงื่อนไขห้าง</a>
+  <a href="overhead-allocation.html">ปันส่วนโสหุ้ย</a>
+  <a href="recipes.html">คลังสูตร</a>
+  <a href="labor-steps.html">คลังขั้นตอนการทำ</a>
+</nav>
+</div>
+
+<div class="print-only-header">
+  <h1 id="printTitle"></h1>
+  <p id="printMeta"></p>
+</div>
+<div class="print-only-summary" id="printSummaryBox"></div>
+
+<main>
+
+  <!-- ข้อมูลสินค้า -->
+  <section class="card">
+    <div class="card-head"><h2>📦 ข้อมูลสินค้า</h2></div>
+    <div class="card-body field-grid">
+      <div><label>ชื่อสินค้า</label><input type="text" id="f_name" placeholder="เช่น ขนมปังหวานไส้กล้วย"></div>
+      <div><label>รหัสสินค้า</label><input type="text" id="f_code" placeholder="รหัส SKU"></div>
+      <div><label>ลูกค้า / รหัสลูกค้า</label><input type="text" id="f_customer" placeholder="ชื่อลูกค้าหรือรหัส"></div>
+      <div>
+        <label>ประเภทสินค้า</label>
+        <select id="f_category">
+          <option value="">— เลือกประเภท —</option>
+          <option>ของสด</option>
+          <option>ของแห้ง</option>
+          <option>เปลี่ยนแพคเกจ</option>
+          <option>แช่แข็ง</option>
+          <option>ไส้ขนม</option>
+        </select>
+      </div>
+      <div><label>หน่วยขาย</label><input type="text" id="f_unit" value="ชิ้น"></div>
+      <div><label>น้ำหนัก (ก./ชิ้น)</label><input type="number" step="0.01" id="f_weight" value="0"></div>
+      <div><label>การบรรจุ (ชิ้น/หีบ)</label><input type="number" step="1" id="f_pack" value="0"></div>
+      <div><label>ผู้รับผิดชอบ</label><input type="text" id="f_owner" placeholder="ชื่อผู้รับผิดชอบ"></div>
+      <div><label>เวอร์ชันสูตร</label><input type="text" id="f_version" value="V.1"></div>
+    </div>
+  </section>
+
+  <!-- สรุปต้นทุน -->
+  <section class="card">
+    <div class="card-head"><h2>📊 สรุปต้นทุนต่อชิ้น</h2><span class="hint">เปรียบเทียบต้นทุน Standard กับ Actual Cost (ตามผลผลิตจริง)</span></div>
+    <div class="card-body table-wrap">
+      <table class="summary-table">
+        <thead><tr><th></th><th>Standard</th><th>Actual</th></tr></thead>
+        <tbody>
+          <tr><td>วัตถุดิบ</td><td id="s_raw_a">0.00</td><td id="s_raw_b">0.00</td></tr>
+          <tr><td>บรรจุภัณฑ์</td><td id="s_pack_a">0.00</td><td id="s_pack_b">0.00</td></tr>
+          <tr><td>ค่าแรง</td><td id="s_labor_a">0.00</td><td id="s_labor_b">0.00</td></tr>
+          <tr><td>โสหุ้ยการผลิต</td><td id="s_oh_a">0.00</td><td id="s_oh_b">0.00</td></tr>
+          <tr class="total"><td>รวมต้นทุนต่อชิ้น</td><td id="s_total_a">0.00</td><td id="s_total_b">0.00</td></tr>
+          <tr class="editable">
+            <td>ราคาขายต่อชิ้น</td>
+            <td colspan="2" style="text-align:right;">
+              <input type="number" step="0.01" id="f_sellprice" value="0">
+            </td>
+          </tr>
+          <tr class="editable">
+            <td>เงื่อนไขห้าง (ช่องทาง)</td>
+            <td colspan="2" style="text-align:right;">
+              <select id="f_tradeterm" style="max-width:280px; margin-left:auto;">
+                <option value="">— ไม่ระบุ —</option>
+              </select>
+            </td>
+          </tr>
+          <tr class="editable">
+            <td>Promotion ห้าง<span style="display:block; font-size:10.5px; color:var(--gray-text); font-weight:400;">ตามเทศกาล/แคมเปญ</span></td>
+            <td colspan="2" style="text-align:right;">
+              <input type="number" step="0.01" id="f_promoValue" value="0" style="width:100px; display:inline-block;">
+              <select id="f_promoUnit" style="width:70px; display:inline-block; margin-left:6px;">
+                <option value="percent">%</option>
+                <option value="baht">บาท</option>
+              </select>
+            </td>
+          </tr>
+          <tr id="row_promo" style="display:none;">
+            <td>หัก Promotion ห้าง</td>
+            <td id="s_promo_a">0.00</td><td id="s_promo_b">0.00</td>
+          </tr>
+          <tr id="row_deduct" style="display:none;">
+            <td>หักตามเงื่อนไขห้าง (<span id="deductPercentTag">0</span>)</td>
+            <td id="s_deduct_a">0.00</td><td id="s_deduct_b">0.00</td>
+          </tr>
+          <tr id="row_dccost" style="display:none;">
+            <td>ค่า DC (เช่าตะกร้า + กระจาย DC)</td>
+            <td id="s_dccost_a">0.00</td><td id="s_dccost_b">0.00</td>
+          </tr>
+          <tr id="row_netprice" style="display:none;">
+            <td>ราคาสุทธิที่ได้รับ</td>
+            <td id="s_net_a">0.00</td><td id="s_net_b">0.00</td>
+          </tr>
+          <tr><td>กำไรหลังหักค่าใช้จ่าย</td><td id="s_profit_a">0.00</td><td id="s_profit_b">0.00</td></tr>
+          <tr><td>Gross Margin (%)</td><td id="s_markup_a"><span class="pill">0.00%</span></td><td id="s_markup_b"><span class="pill">0.00%</span></td></tr>
+        </tbody>
+      </table>
+      <div class="status-msg" id="deliveryPenaltyTag" style="display:none;"></div>
+    </div>
+  </section>
+
+  <!-- Production Yield & Actual Cost -->
+  <section class="card">
+    <div class="card-head">
+      <h2>📊 Production Yield &amp; Actual Cost</h2>
+      <span class="hint">ต้นทุนจริงตามผลผลิตที่ผลิตได้จริง (ไม่แก้ Standard Cost เดิม) — ค่าด้านล่างนี้คือ "Batch ปัจจุบัน" ที่ใช้คำนวณคอลัมน์ Actual ด้านบนตลอดเวลา ต้องกด "บันทึกลง Loss Analysis" เพื่อเก็บเป็นประวัติ หรือกด "ล้างข้อมูล" เพื่อหยุดผลกระทบ</span>
+    </div>
+    <div class="card-body">
+      <div class="yield-mode-toggle">
+        <label><input type="radio" name="yieldMode" value="current" id="modeCurrentRadio" checked> ใช้ Batch ปัจจุบัน</label>
+        <label><input type="radio" name="yieldMode" value="average" id="modeAverageRadio"> ใช้ค่าเฉลี่ยถ่วงน้ำหนักจากประวัติ (<span id="historyCountTag">0</span> Batch)</label>
+      </div>
+      <div id="avgModeHint" class="hint" style="display:none; margin:4px 0 10px;">คำนวณจากผลรวม Standard/Actual ของทุก Batch ใน Loss Analysis ด้านล่าง (เท่ากับถ่วงน้ำหนักตามขนาดของแต่ละ Batch) — ช่อง Standard/Actual Output ด้านล่างจะถูกตั้งค่าอัตโนมัติและแก้ไขไม่ได้ในโหมดนี้</div>
+      <div class="field-grid">
+        <div><label>Standard Output (ชิ้น/Batch)</label><input type="number" step="1" id="f_stdOutput" placeholder="เช่น 1930"></div>
+        <div><label>Actual Good Output (ชิ้น)</label><input type="number" step="1" id="f_actualOutput" placeholder="กรอกจำนวนผลิตจริง"></div>
+        <div><label>Production Loss (ชิ้น)</label><input type="text" id="r_prodLoss" value="-" readonly></div>
+        <div><label>Batch / วันที่ผลิต</label>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="f_batchLabel" placeholder="Batch 1">
+            <input type="date" id="f_batchDate">
+          </div>
+        </div>
+      </div>
+
+      <div id="yieldNoDataMsg" class="no-data-box" style="margin-top:12px;">ยังไม่มีข้อมูลผลผลิตจริง — กรอก "Actual Good Output" เพื่อคำนวณ Yield และ Actual Cost</div>
+
+      <div id="yieldStatsWrap" style="display:none;">
+        <div class="field-grid" style="margin-top:14px;">
+          <div class="stat-mini"><div class="label">ผลผลิตมาตรฐาน</div><div class="val" id="y_std">-</div></div>
+          <div class="stat-mini"><div class="label">ผลผลิตจริง</div><div class="val" id="y_actual">-</div></div>
+          <div class="stat-mini"><div class="label">สูญเสีย</div><div class="val" id="y_loss">-</div></div>
+          <div class="stat-mini"><div class="label">Yield</div><div class="val" id="y_yieldpct">-</div><div class="sub" id="y_losspct"></div></div>
+        </div>
+        <div id="y_overStatus" class="status-msg" style="display:none; color:var(--green-dark); font-weight:600;"></div>
+        <div id="y_zeroStatus" class="status-msg" style="display:none; color:var(--red-dark); font-weight:600;"></div>
+
+        <details class="accordion">
+          <summary>🔴 Production Loss Detail</summary>
+          <div class="accordion-body">
+            <div class="field-grid">
+              <div>
+                <label>Loss Stage</label>
+                <select id="f_lossStage">
+                  <option value="">— เลือก Stage —</option>
+                  <option>ก่อนผสม</option>
+                  <option>หลังผสม</option>
+                  <option>หลังแบ่ง</option>
+                  <option>หลังขึ้นรูป</option>
+                  <option>หลัง Proof</option>
+                  <option>หลังอบ</option>
+                  <option>ก่อนแพ็ก</option>
+                  <option>หลังแพ็ก</option>
+                  <option>อื่น ๆ</option>
+                </select>
+              </div>
+              <div>
+                <label>Loss Reason</label>
+                <select id="f_lossReason">
+                  <option value="">— เลือกสาเหตุ —</option>
+                  <option>รูปทรงไม่ได้มาตรฐาน</option>
+                  <option>น้ำหนักไม่ได้มาตรฐาน</option>
+                  <option>สีไม่ได้มาตรฐาน</option>
+                  <option>อบไม่ได้มาตรฐาน</option>
+                  <option>แตก/เสียหาย</option>
+                  <option>ตกหล่น</option>
+                  <option value="อื่น ๆ">อื่น ๆ (ระบุ)</option>
+                </select>
+              </div>
+              <div><label>Loss Qty (ชิ้น)</label><input type="text" id="r_lossQty" value="-" readonly></div>
+              <div><label>สาเหตุอื่น ๆ (ถ้าเลือก "อื่น ๆ")</label><input type="text" id="f_lossReasonCustom" placeholder="ระบุสาเหตุ"></div>
+            </div>
+            <div style="margin-top:10px;"><label>Remark</label><input type="text" id="f_lossRemark" placeholder="บันทึกเพิ่มเติม เช่น รายละเอียดการสูญเสีย"></div>
+            <div class="checkbox-row">
+              <span style="color:var(--gray-text);">ต้นทุนที่เกิดขึ้นแล้วก่อนจุดสูญเสีย (ใช้คำนวณ Cost of Lost Production และคอลัมน์ Actual) — ติ๊กเป็นรายรายการ:</span>
+            </div>
+            <div class="loss-comp-section">
+              <div class="loss-comp-cat"><b>🌾 ส่วนประกอบ</b><div id="lossCompCheckboxes" class="loss-comp-list"></div></div>
+              <div class="loss-comp-cat"><b>📦 บรรจุภัณฑ์</b><div id="lossPackCheckboxes" class="loss-comp-list"></div></div>
+              <div class="loss-comp-cat"><b>👷 ค่าแรงตามแผนก</b><div id="lossLaborCheckboxes" class="loss-comp-list"></div></div>
+              <div class="loss-comp-cat"><b>🏭 ค่าโสหุ้ยแยกตามค่าใช้จ่าย</b><div id="lossOhCheckboxes" class="loss-comp-list"></div></div>
+            </div>
+          </div>
+        </details>
+
+        <details class="accordion" open>
+          <summary>💰 Standard vs Actual Cost</summary>
+          <div class="accordion-body table-wrap">
+            <table class="cmp-table">
+              <thead><tr><th>รายการ</th><th>Standard</th><th>Actual</th></tr></thead>
+              <tbody>
+                <tr><td>ผลผลิต (ชิ้น)</td><td id="c_std_out">-</td><td id="c_act_out">-</td></tr>
+                <tr><td>ต้นทุน/ชิ้น (บาท)</td><td id="c_std_cost">-</td><td id="c_act_cost">-</td></tr>
+                <tr><td>ต้นทุนรวม Batch (บาท)</td><td id="c_std_batch">-</td><td id="c_act_batch">-</td></tr>
+                <tr><td>Yield</td><td id="c_std_yield">100%</td><td id="c_act_yield">-</td></tr>
+                <tr><td>Loss</td><td id="c_std_loss">0%</td><td id="c_act_loss">-</td></tr>
+                <tr class="hi"><td>ต้นทุนเพิ่มขึ้น</td><td colspan="2" id="c_increase">-</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <details class="accordion">
+          <summary>⚠️ ผลกระทบจากการสูญเสีย</summary>
+          <div class="accordion-body table-wrap">
+            <table class="cmp-table">
+              <tbody>
+                <tr><td>Loss Quantity</td><td id="i_lossqty">-</td></tr>
+                <tr><td>Loss %</td><td id="i_losspct">-</td></tr>
+                <tr><td>Yield</td><td id="i_yield">-</td></tr>
+                <tr><td>Standard Cost</td><td id="i_std">-</td></tr>
+                <tr><td>Actual Cost</td><td id="i_act">-</td></tr>
+                <tr><td>Cost Increase</td><td id="i_inc">-</td></tr>
+                <tr class="hi"><td>Cost of Lost Production (ไม่รวมบรรจุภัณฑ์ถ้ายังไม่แพ็ก)</td><td id="i_lostcost">-</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+          <button class="add-row-btn" id="addBatchHistoryBtn">+ บันทึก Batch นี้ลง Loss Analysis</button>
+          <button class="btn btn-outline btn-sm" id="clearBatchBtn" type="button">✕ ล้างข้อมูล Batch นี้</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Loss Analysis -->
+  <section class="card">
+    <div class="card-head">
+      <h2>🔍 Loss Analysis</h2>
+      <span class="hint">ประวัติผลผลิต/การสูญเสียของแต่ละ Batch</span>
+    </div>
+    <div class="card-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>วันที่</th><th>Batch</th><th>Stage</th>
+            <th class="num">Loss Qty</th><th class="num">Loss %</th>
+            <th>Reason</th><th class="num">Cost Impact</th><th style="width:26px"></th>
+          </tr></thead>
+          <tbody id="lossHistoryBody"></tbody>
+        </table>
+        <div class="empty-state" id="lossHistoryEmpty" style="padding:24px; text-align:center; color:var(--gray-text); font-size:12.5px;">ยังไม่มีประวัติ Batch — กด "บันทึก Batch นี้ลง Loss Analysis" ด้านบน</div>
+      </div>
+      <details class="accordion" id="lossChartsWrap" style="display:none;">
+        <summary>📈 กราฟเปรียบเทียบ Batch</summary>
+        <div class="accordion-body">
+          <div class="hint" style="margin-bottom:8px; display:block;">Standard vs Actual Output</div>
+          <div id="chartOutput"></div>
+          <div class="hint" style="margin:14px 0 8px; display:block;">Yield % ต่อ Batch</div>
+          <div id="chartYield"></div>
+          <div class="hint" style="margin:14px 0 8px; display:block;">Loss by Reason</div>
+          <div id="chartReason"></div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ส่วนประกอบ (สูตรย่อย) -->
+  <section class="card">
+    <div class="card-head">
+      <h2>🌾 ส่วนประกอบ (สูตรย่อย)</h2>
+      <button class="btn btn-green btn-sm" id="addComponentBtn">+ เพิ่มส่วนประกอบ</button>
+    </div>
+    <div class="card-body" id="componentsWrap"></div>
+  </section>
+
+  <!-- บรรจุภัณฑ์ -->
+  <section class="card">
+    <div class="card-head"><h2>📦 บรรจุภัณฑ์</h2></div>
+    <div class="card-body">
+      <div class="table-wrap">
+        <table id="packTable">
+          <thead><tr>
+            <th style="width:14%">รหัส</th><th>รายการ</th>
+            <th class="num" style="width:11%">ราคา</th><th class="num" style="width:13%">จำนวน/แพ็ค</th>
+            <th class="num" style="width:11%">ราคา/หน่วย</th><th class="num" style="width:10%">ใช้</th>
+            <th class="num" style="width:12%">จำนวนเงิน</th><th style="width:30px"></th>
+          </tr></thead>
+          <tbody id="packBody"></tbody>
+          <tfoot><tr><td colspan="6">รวมบรรจุภัณฑ์</td><td class="num" id="packTotal">0.00</td><td></td></tr></tfoot>
+        </table>
+      </div>
+      <button class="add-row-btn" id="addPackBtn">+ เพิ่มรายการบรรจุภัณฑ์</button>
+    </div>
+  </section>
+
+  <!-- ค่าแรง -->
+  <section class="card">
+    <div class="card-head">
+      <h2>👷 ค่าแรง</h2>
+      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <span class="hint">ค่าแรง/นาที = <input type="number" step="0.01" id="laborRate" value="0.78" style="width:70px; display:inline-block;"> บาท</span>
+        <button class="btn btn-green btn-sm" id="addLaborGroupBtn">+ เพิ่มส่วนประกอบ</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div id="laborGroupsWrap"></div>
+      <div class="waste-line" style="justify-content:flex-end;">
+        <span class="readout">รวมค่าแรงทั้งหมด <b id="laborGrandTotal">0.00</b> บาท/ชิ้น</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- โสหุ้ยการผลิต -->
+  <section class="card">
+    <div class="card-head">
+      <h2>🏭 โสหุ้ยการผลิต</h2>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="hint" id="ohSourceTag">ต่อชิ้น — เลือกประเภทสินค้าแล้วกดดึงจากตาราง</span>
+        <button class="btn btn-outline btn-sm" id="pullOverheadBtn">↻ ดึงจากตาราง</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="overhead-grid">
+        <div><label>ค่าไฟฟ้า</label><input type="number" step="0.0001" id="oh_electric" value="0"></div>
+        <div><label>ค่าน้ำ</label><input type="number" step="0.0001" id="oh_water" value="0"></div>
+        <div><label>ค่าเผื่อ</label><input type="number" step="0.0001" id="oh_allowance" value="0"></div>
+        <div><label>ค่าเช่า<span class="rent-tag">รวมเฉพาะคอลัมน์ซ้าย</span></label><input type="number" step="0.0001" id="oh_rent" value="0"></div>
+        <div><label>ค่าขนส่ง<span class="rent-tag">รวมเฉพาะคอลัมน์ซ้าย</span></label><input type="number" step="0.0001" id="oh_shipping" value="0"></div>
+      </div>
+      <div class="waste-line">
+        <span class="readout">รวมโสหุ้ยการผลิต (รวมเช่า+ขนส่ง) <b id="ohTotalA">0.00</b> &nbsp;|&nbsp; ไม่รวม <b id="ohTotalB">0.00</b></span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js"></script>
+<script type="module">
+import {
+  collection, doc, getDoc, getDocs, setDoc, addDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from "./firebase-config.js";
+
+const PRODUCTS_COL = "products";
+const MATERIALS_COL = "materials";
+const RECIPES_COL = "recipes";
+const LABOR_STEPS_COL = "laborStepGroups";
+const OVERHEAD_COL = "overheadAllocations";
+const TERMS_COL = "tradeTerms";
+
+const $ = (id) => document.getElementById(id);
+const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const fmt = (n) => (Math.round(n * 100) / 100).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt5 = (n) => (Math.round(n * 100000) / 100000).toFixed(5);
+const round2 = (n) => Math.round(n * 100) / 100;
+
+let components = [];
+let packRows = [];
+let laborGroups = [];
+let rowSeq = 0;
+let compSeq = 0;
+let groupSeq = 0;
+let stepSeq = 0;
+let materialsCache = { วัตถุดิบ: [], บรรจุภัณฑ์: [] };
+let recipesCache = [];
+let laborStepsCache = [];
+let overheadCache = [];
+let termsCache = [];
+let currentDocId = new URLSearchParams(location.search).get("id") || null;
+let productionBatches = []; // ประวัติ Loss Analysis
+let lastStandardCostA = 0; // cache ต้นทุน/ชิ้น (รวมเช่า+ขนส่ง) ล่าสุดจาก calcSummary
+let lastComponentCosts = { raw: 0, pack: 0, labor: 0, oh: 0 };
+let lossIncludeMap = { comp: {}, pack: {}, labor: {}, oh: { electric: true, water: true, allowance: true, rent: true, shipping: true } };
+const OH_KEYS = [
+  { key: "electric", label: "ค่าไฟฟ้า" },
+  { key: "water", label: "ค่าน้ำ" },
+  { key: "allowance", label: "ค่าเผื่อ" },
+  { key: "rent", label: "ค่าเช่า" },
+  { key: "shipping", label: "ค่าขนส่ง" }
+];
+
+const STAGE_ORDER = ["ก่อนผสม", "หลังผสม", "หลังแบ่ง", "หลังขึ้นรูป", "หลัง Proof", "หลังอบ", "ก่อนแพ็ก", "หลังแพ็ก", "อื่น ๆ"];
+
+function escapeAttr(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* ---------------- materials datalist (คลังวัตถุดิบ/บรรจุภัณฑ์) ---------------- */
+async function loadMaterials() {
+  if (!db) return;
+  try {
+    const snap = await getDocs(collection(db, MATERIALS_COL));
+    materialsCache = { วัตถุดิบ: [], บรรจุภัณฑ์: [] };
+    snap.forEach(d => {
+      const m = { id: d.id, ...d.data() };
+      const bucket = m.type === "บรรจุภัณฑ์" ? "บรรจุภัณฑ์" : "วัตถุดิบ";
+      materialsCache[bucket].push(m);
+    });
+  } catch (e) {
+    console.warn("โหลดคลังวัตถุดิบไม่สำเร็จ", e);
+  }
+}
+function findMaterial(bucket, name) {
+  return materialsCache[bucket].find(m => m.name === name);
+}
+
+/* ---------------- custom code+name search dropdown (ใช้ในตารางวัตถุดิบ/บรรจุภัณฑ์) ---------------- */
+function attachSearchCombo(inputEl, bucket, onSelect) {
+  const td = inputEl.closest("td");
+  td.style.position = "relative";
+  let dropdown = null;
+
+  function closeDropdown() {
+    if (dropdown) { dropdown.remove(); dropdown = null; }
+  }
+
+  function openDropdown(items) {
+    closeDropdown();
+    dropdown = document.createElement("div");
+    dropdown.className = "search-results";
+    if (!items.length) {
+      dropdown.innerHTML = `<div class="sr-empty">ไม่พบรายการที่ตรงกัน — พิมพ์เองได้อิสระ</div>`;
+    } else {
+      items.slice(0, 8).forEach(m => {
+        const opt = document.createElement("div");
+        opt.className = "sr-item";
+        opt.innerHTML = `<span class="sr-name">${escapeHtml(m.name || "")}</span><span class="sr-code">${escapeHtml(m.code || "")}</span>`;
+        opt.addEventListener("mousedown", (e) => {
+          e.preventDefault(); // ป้องกัน blur ตัดหน้าก่อนคลิกทำงาน
+          onSelect(m);
+          closeDropdown();
+        });
+        dropdown.appendChild(opt);
+      });
+    }
+    td.appendChild(dropdown);
+  }
+
+  function search() {
+    const q = inputEl.value.trim().toLowerCase();
+    const list = materialsCache[bucket] || [];
+    const filtered = q
+      ? list.filter(m => (m.name || "").toLowerCase().includes(q) || (m.code || "").toLowerCase().includes(q))
+      : list;
+    openDropdown(filtered);
+  }
+
+  inputEl.addEventListener("focus", search);
+  inputEl.addEventListener("input", search);
+  inputEl.addEventListener("blur", () => setTimeout(closeDropdown, 150));
+  inputEl.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDropdown(); });
+}
+
+/* ---------------- คลังสูตร (สูตรย่อยที่ใช้ซ้ำได้) ---------------- */
+async function loadRecipes() {
+  if (!db) return;
+  try {
+    const snap = await getDocs(collection(db, RECIPES_COL));
+    recipesCache = [];
+    snap.forEach(d => recipesCache.push({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn("โหลดคลังสูตรไม่สำเร็จ", e);
+  }
+}
+function fillRecipeSelect(sel, selectedId) {
+  sel.innerHTML = `<option value="">— กำหนดเอง —</option>` +
+    recipesCache.map(r => `<option value="${r.id}">${escapeHtml(r.name || r.code || r.id)}</option>`).join("");
+  sel.value = selectedId || "";
+}
+
+/* ---------------- คลังขั้นตอนการทำ (ค่าแรงที่ใช้ซ้ำได้) ---------------- */
+async function loadLaborSteps() {
+  if (!db) return;
+  try {
+    const snap = await getDocs(collection(db, LABOR_STEPS_COL));
+    laborStepsCache = [];
+    snap.forEach(d => laborStepsCache.push({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn("โหลดคลังขั้นตอนการทำไม่สำเร็จ", e);
+  }
+}
+function fillLaborStepSelect(sel, selectedId) {
+  sel.innerHTML = `<option value="">— กำหนดเอง —</option>` +
+    laborStepsCache.map(g => `<option value="${g.id}">${escapeHtml(g.name || g.code || g.id)}</option>`).join("");
+  sel.value = selectedId || "";
+}
+
+/* ---------------- ปันส่วนโสหุ้ยต่อชิ้น (auto-fill โสหุ้ยการผลิต) ---------------- */
+async function loadOverheadAllocations() {
+  if (!db) return;
+  try {
+    const snap = await getDocs(collection(db, OVERHEAD_COL));
+    overheadCache = [];
+    snap.forEach(d => overheadCache.push({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn("โหลดปันส่วนโสหุ้ยไม่สำเร็จ", e);
+  }
+}
+function applyOverheadFromCategory(showMissingAlert) {
+  const cat = $("f_category").value;
+  if (!cat) {
+    if (showMissingAlert) alert("กรุณาเลือกประเภทสินค้าก่อน");
+    $("ohSourceTag").textContent = "ต่อชิ้น — เลือกประเภทสินค้าแล้วกดดึงจากตาราง";
+    return;
+  }
+  const row = overheadCache.find(o => o.category === cat);
+  if (!row) {
+    if (showMissingAlert) alert(`ยังไม่มีข้อมูลปันส่วนโสหุ้ยสำหรับประเภท "${cat}" — ไปตั้งค่าที่หน้าปันส่วนโสหุ้ยก่อน`);
+    $("ohSourceTag").textContent = `ต่อชิ้น — ไม่พบข้อมูลปันส่วนโสหุ้ยของ "${cat}"`;
+    return;
+  }
+  const currentIds = ["oh_electric", "oh_water", "oh_allowance", "oh_rent", "oh_shipping"];
+  const hasExisting = currentIds.some(id => num($(id).value) !== 0);
+  if (hasExisting) {
+    if (!confirm(`ดึงค่าโสหุ้ยจากตาราง "${cat}" มาแทนที่ตัวเลขปัจจุบันหรือไม่?`)) return;
+  }
+  $("oh_electric").value = row.electric || 0;
+  $("oh_water").value = row.water || 0;
+  $("oh_allowance").value = row.allowance || 0;
+  $("oh_rent").value = row.rent || 0;
+  $("oh_shipping").value = row.shipping || 0;
+  $("ohSourceTag").textContent = `ต่อชิ้น — ดึงจากปันส่วนโสหุ้ย: ${cat}`;
+  calcSummary();
+}
+
+/* ---------------- เงื่อนไขห้าง (Trade Terms) ---------------- */
+async function loadTradeTerms() {
+  if (!db) return;
+  try {
+    const snap = await getDocs(collection(db, TERMS_COL));
+    termsCache = [];
+    snap.forEach(d => termsCache.push({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn("โหลดเงื่อนไขห้างไม่สำเร็จ", e);
+  }
+  fillTradeTermSelect();
+}
+function fillTradeTermSelect() {
+  const sel = $("f_tradeterm");
+  const current = sel.value;
+  sel.innerHTML = `<option value="">— ไม่ระบุ —</option>` +
+    termsCache.map(t => {
+      const deductPct = termDeductPercent(t);
+      const deductBaht = termDeductBaht(t);
+      const deductLabel = deductBaht > 0 ? `${fmt(deductPct)}% + ${fmt(deductBaht)}฿` : `${fmt(deductPct)}%`;
+      const label = `${t.store}${t.vendorCode ? ` (${t.vendorCode})` : ""} - ${t.productType || "-"} - รวมหัก ${deductLabel}`;
+      return `<option value="${t.id}">${escapeHtml(label)}</option>`;
+    }).join("");
+  sel.value = current;
+}
+function termDeductPercent(term) {
+  return (term.deductItems || [])
+    .filter(d => (d.unit || "percent") === "percent")
+    .reduce((s, d) => s + num(d.value ?? d.percent), 0);
+}
+function termDeductBaht(term) {
+  return (term.deductItems || [])
+    .filter(d => d.unit === "baht")
+    .reduce((s, d) => s + num(d.value), 0);
+}
+function termDcCostPerUnit(term, packPerBox) {
+  const dc = term.dcCost || {};
+  const basketPerBox = num(dc.basketFeePerUnit);
+  const dispatchPerBox = num(dc.dcDispatchFeePerCase);
+  return packPerBox > 0 ? (basketPerBox + dispatchPerBox) / packPerBox : 0;
+}
+
+/* ---------------------------- ส่วนประกอบ (component) builders ---------------------------- */
+function makeComponent() {
+  const id = "c" + (++compSeq);
+  const comp = { id, recipeId: "", name: "", waste: 0, gpp: 0, ingredients: [] };
+  components.push(comp);
+  renderComponent(comp);
+  return comp;
+}
+
+function renderComponent(comp) {
+  const div = document.createElement("div");
+  div.className = "component-card";
+  div.id = comp.id;
+  div.innerHTML = `
+    <div class="component-head">
+      <div><label>สูตรจากคลัง</label><select class="c-recipe"></select></div>
+      <div><label>ชื่อส่วนประกอบ</label><input type="text" class="c-name" placeholder="ชื่อส่วนประกอบ เช่น ขนมปังหวาน" value="${escapeAttr(comp.name)}"></div>
+      <div><label>Loss %</label><input type="number" step="0.01" class="c-waste" value="${comp.waste}"></div>
+      <div><label>กรัม/ชิ้น</label><input type="number" step="0.01" class="c-gpp" value="${comp.gpp}"></div>
+      <div><label>&nbsp;</label><button class="btn btn-red btn-sm c-del">ลบ</button></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:12%">รหัส</th>
+          <th>รายการวัตถุดิบ</th><th class="num" style="width:11%">ราคา</th>
+          <th class="num" style="width:13%">น้ำหนัก/แพ็ค (ก.)</th><th class="num" style="width:11%">ราคา/กรัม</th>
+          <th class="num" style="width:10%">ใช้ (กรัม)</th><th class="num" style="width:12%">จำนวนเงิน</th><th style="width:26px"></th>
+        </tr></thead>
+        <tbody class="c-ing-body"></tbody>
+        <tfoot>
+          <tr><td colspan="5">รวม</td><td class="num"><b class="c-total-weight">0.00</b> ก.</td><td class="num c-total-money">0.00</td><td></td></tr>
+          <tr>
+            <td colspan="3">หลังค่าสูญเสีย <b class="c-waste-echo">0.00</b>% → น้ำหนักสุทธิ <b class="c-net-weight">0.00</b> ก.</td>
+            <td></td>
+            <td class="num">ต้นทุน/กรัม <b class="c-cpg">0.00000</b></td>
+            <td class="num"><b class="c-gpp-echo">0.00</b> ก./ชิ้น</td>
+            <td class="num c-contribution">0.0000</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <button class="add-row-btn c-add-ing">+ เพิ่มวัตถุดิบ</button>
+  `;
+  $("componentsWrap").appendChild(div);
+
+  const sel = div.querySelector(".c-recipe");
+  fillRecipeSelect(sel, comp.recipeId);
+
+  div.querySelector(".c-name").addEventListener("input", (e) => { comp.name = e.target.value; });
+  div.querySelector(".c-waste").addEventListener("input", (e) => { comp.waste = num(e.target.value); calcComponents(); calcSummary(); });
+  div.querySelector(".c-gpp").addEventListener("input", (e) => { comp.gpp = num(e.target.value); calcComponents(); calcSummary(); });
+  div.querySelector(".c-del").addEventListener("click", () => {
+    components = components.filter(c => c.id !== comp.id);
+    div.remove();
+    calcSummary();
+  });
+  div.querySelector(".c-add-ing").addEventListener("click", () => {
+    addIngredientRow(comp, div);
+    calcComponents(); calcSummary();
+  });
+  sel.addEventListener("change", () => {
+    comp.recipeId = sel.value;
+    if (!comp.recipeId) return;
+    const recipe = recipesCache.find(r => r.id === comp.recipeId);
+    if (!recipe) return;
+    comp.name = recipe.name || comp.name;
+    comp.waste = num(recipe.wastePercent);
+    div.querySelector(".c-name").value = comp.name;
+    div.querySelector(".c-waste").value = comp.waste;
+    comp.ingredients = (recipe.ingredients || []).map(ing => ({ ...ing }));
+    div.querySelector(".c-ing-body").innerHTML = "";
+    if (comp.ingredients.length) {
+      comp.ingredients.forEach(ing => renderIngredientRow(comp, div, ing));
+    } else {
+      addIngredientRow(comp, div);
+    }
+    calcComponents(); calcSummary();
+  });
+
+  if (comp.ingredients.length) {
+    comp.ingredients.forEach(ing => renderIngredientRow(comp, div, ing));
+  } else {
+    addIngredientRow(comp, div);
+  }
+}
+
+function addIngredientRow(comp, div, ingData) {
+  const ing = ingData || { code: "", name: "", price: 0, weightG: 1, amountG: 0 };
+  if (!ingData) comp.ingredients.push(ing);
+  renderIngredientRow(comp, div, ing);
+}
+
+function renderIngredientRow(comp, div, ing) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td><input type="text" class="i-code" value="${escapeAttr(ing.code || "")}" placeholder="รหัส"></td>
+    <td style="position:relative;"><input type="text" class="i-name" value="${escapeAttr(ing.name)}" placeholder="พิมพ์รหัสหรือชื่อเพื่อค้นหา" autocomplete="off"></td>
+    <td><input type="number" step="0.01" class="i-price" value="${ing.price || 0}"></td>
+    <td><input type="number" step="0.01" class="i-weight" value="${ing.weightG || 1}"></td>
+    <td><input type="text" class="i-ppg" value="0.0000" readonly></td>
+    <td><input type="number" step="0.01" class="i-amount" value="${ing.amountG || 0}"></td>
+    <td><input type="text" class="i-money" value="0.00" readonly></td>
+    <td><button class="row-del i-del" title="ลบแถว">✕</button></td>
+  `;
+  div.querySelector(".c-ing-body").appendChild(tr);
+
+  const sync = () => {
+    ing.code = tr.querySelector(".i-code").value;
+    ing.name = tr.querySelector(".i-name").value;
+    ing.price = num(tr.querySelector(".i-price").value);
+    ing.weightG = num(tr.querySelector(".i-weight").value);
+    ing.amountG = num(tr.querySelector(".i-amount").value);
+    calcComponents(); calcSummary();
+  };
+  tr.querySelectorAll("input").forEach(inp => { if (!inp.readOnly) inp.addEventListener("input", sync); });
+
+  attachSearchCombo(tr.querySelector(".i-name"), "วัตถุดิบ", (m) => {
+    ing.code = m.code || "";
+    ing.name = m.name || "";
+    ing.price = num(m.price);
+    ing.weightG = num(m.packWeight || m.weight) || 1;
+    tr.querySelector(".i-code").value = ing.code;
+    tr.querySelector(".i-name").value = ing.name;
+    tr.querySelector(".i-price").value = ing.price;
+    tr.querySelector(".i-weight").value = ing.weightG;
+    calcComponents(); calcSummary();
+  });
+
+  tr.querySelector(".i-del").addEventListener("click", () => {
+    const idx = comp.ingredients.indexOf(ing);
+    if (idx > -1) comp.ingredients.splice(idx, 1);
+    tr.remove();
+    calcComponents(); calcSummary();
+  });
+}
+
+function makePackRow() {
+  const id = "p" + (++rowSeq);
+  const row = { id, code: "", name: "", price: 0, packQty: 1, amountUsed: 0 };
+  packRows.push(row);
+  renderPackRow(row);
+  return row;
+}
+function renderPackRow(row) {
+  const tr = document.createElement("tr");
+  tr.id = row.id;
+  tr.innerHTML = `
+    <td><input type="text" class="code" value="${escapeAttr(row.code)}" placeholder="รหัส"></td>
+    <td style="position:relative;"><input type="text" class="name" value="${escapeAttr(row.name)}" placeholder="พิมพ์รหัสหรือชื่อเพื่อค้นหา" autocomplete="off"></td>
+    <td><input type="number" step="0.01" class="price" value="${row.price}"></td>
+    <td><input type="number" step="0.01" class="packQty" value="${row.packQty}"></td>
+    <td><input type="text" class="ppu" value="0.0000" readonly></td>
+    <td><input type="number" step="0.01" class="amountUsed" value="${row.amountUsed}"></td>
+    <td><input type="text" class="amount" value="0.00" readonly></td>
+    <td><button class="row-del" title="ลบแถว">✕</button></td>
+  `;
+  $("packBody").appendChild(tr);
+  wireRow(tr, row, packRows, () => calcPack());
+  attachSearchCombo(tr.querySelector(".name"), "บรรจุภัณฑ์", (m) => {
+    row.code = m.code || "";
+    row.name = m.name || "";
+    row.price = num(m.price);
+    row.packQty = num(m.packWeight || m.weight) || 1;
+    tr.querySelector(".code").value = row.code;
+    tr.querySelector(".name").value = row.name;
+    tr.querySelector(".price").value = row.price;
+    tr.querySelector(".packQty").value = row.packQty;
+    calcPack();
+    calcSummary();
+  });
+}
+
+function makeLaborGroup() {
+  const id = "g" + (++groupSeq);
+  const group = { id, name: "", steps: [], templateId: "" };
+  laborGroups.push(group);
+  renderLaborGroup(group);
+  return group;
+}
+
+function renderLaborGroup(group) {
+  const div = document.createElement("div");
+  div.className = "component-card";
+  div.id = group.id;
+  div.innerHTML = `
+    <div class="component-head" style="grid-template-columns: 1.3fr 1.5fr 68px;">
+      <div><label>ดึงจากคลังขั้นตอนการทำ</label><select class="g-template"></select></div>
+      <div><label>ชื่อกลุ่ม/แผนก</label><input type="text" class="g-name" placeholder="เช่น แผนกผสม, แผนกอบ, แผนกบรรจุ" value="${escapeAttr(group.name)}"></div>
+      <div><label>&nbsp;</label><button class="btn btn-red btn-sm g-del">ลบ</button></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>ขั้นตอน</th>
+          <th class="num" style="width:14%">เวลา (นาที)</th>
+          <th class="num" style="width:12%">จำนวนคน</th>
+          <th class="num" style="width:14%">ชิ้น/แบตช์</th>
+          <th class="num" style="width:14%">ค่าแรง/ชิ้น</th><th style="width:26px"></th>
+        </tr></thead>
+        <tbody class="g-steps"></tbody>
+        <tfoot><tr><td colspan="4">รวมค่าแรง (กลุ่มนี้)</td><td class="num"><b class="g-subtotal">0.00</b></td><td></td></tr></tfoot>
+      </table>
+    </div>
+    <button class="add-row-btn g-add-step">+ เพิ่มขั้นตอน</button>
+  `;
+  $("laborGroupsWrap").appendChild(div);
+
+  const sel = div.querySelector(".g-template");
+  fillLaborStepSelect(sel, group.templateId);
+
+  div.querySelector(".g-name").addEventListener("input", (e) => { group.name = e.target.value; });
+  div.querySelector(".g-del").addEventListener("click", () => {
+    laborGroups = laborGroups.filter(g => g.id !== group.id);
+    div.remove();
+    calcSummary();
+  });
+  div.querySelector(".g-add-step").addEventListener("click", () => {
+    addLaborStep(group, div);
+    calcLaborGroups(); calcSummary();
+  });
+  sel.addEventListener("change", () => {
+    group.templateId = sel.value;
+    if (!group.templateId) return;
+    const tmpl = laborStepsCache.find(t => t.id === group.templateId);
+    if (!tmpl) return;
+    // คัดลอกค่าจากคลังมาแก้ไขได้อิสระ — ไม่ผูก/ไม่ sync กลับคลังทั้งสองทาง
+    group.name = tmpl.name || group.name;
+    group.steps = (tmpl.steps || []).map(s => ({ ...s }));
+    div.querySelector(".g-name").value = group.name;
+    div.querySelector(".g-steps").innerHTML = "";
+    if (group.steps.length) {
+      group.steps.forEach(step => renderLaborStep(group, div, step));
+    } else {
+      addLaborStep(group, div);
+    }
+    calcLaborGroups(); calcSummary();
+  });
+
+  if (group.steps.length) {
+    group.steps.forEach(step => renderLaborStep(group, div, step));
+  } else {
+    addLaborStep(group, div);
+  }
+}
+
+function addLaborStep(group, div, stepData) {
+  const step = stepData || { department: "", minutes: 0, headcount: 1, unitsPerBatch: 1 };
+  const id = "s" + (++stepSeq);
+  const row = { id, ...step };
+  group.steps.push(row);
+  renderLaborStep(group, div, row);
+  return row;
+}
+
+function renderLaborStep(group, div, row) {
+  const tr = document.createElement("tr");
+  tr.id = row.id;
+  tr.innerHTML = `
+    <td><input type="text" class="s-department" value="${escapeAttr(row.department)}"></td>
+    <td><input type="number" step="0.01" class="s-minutes" value="${row.minutes || 0}"></td>
+    <td><input type="number" step="1" class="s-headcount" value="${row.headcount || 1}"></td>
+    <td><input type="number" step="1" class="s-unitsPerBatch" value="${row.unitsPerBatch || 1}"></td>
+    <td><input type="text" class="s-cost" value="0.00" readonly></td>
+    <td><button class="row-del s-del" title="ลบแถว">✕</button></td>
+  `;
+  div.querySelector(".g-steps").appendChild(tr);
+
+  const sync = () => {
+    row.department = tr.querySelector(".s-department").value;
+    row.minutes = num(tr.querySelector(".s-minutes").value);
+    row.headcount = num(tr.querySelector(".s-headcount").value);
+    row.unitsPerBatch = num(tr.querySelector(".s-unitsPerBatch").value);
+    calcLaborGroups(); calcSummary();
+  };
+  tr.querySelectorAll("input").forEach(inp => { if (!inp.readOnly) inp.addEventListener("input", sync); });
+  tr.querySelector(".s-del").addEventListener("click", () => {
+    group.steps = group.steps.filter(s => s.id !== row.id);
+    tr.remove();
+    calcLaborGroups(); calcSummary();
+  });
+}
+
+function wireRow(tr, row, arr, recalc) {
+  tr.querySelectorAll("input").forEach(inp => {
+    if (inp.readOnly) return;
+    inp.addEventListener("input", () => {
+      const cls = inp.className;
+      if (cls in row) row[cls] = (inp.type === "number") ? num(inp.value) : inp.value;
+      recalc();
+      calcSummary();
+    });
+  });
+  tr.querySelector(".row-del").addEventListener("click", () => {
+    const idx = arr.findIndex(r => r.id === row.id);
+    if (idx > -1) arr.splice(idx, 1);
+    tr.remove();
+    recalc();
+    calcSummary();
+  });
+}
+
+/* ---------------------------- calculations ---------------------------- */
+function calcComponents() {
+  let totalContribution = 0;
+  components.forEach(comp => {
+    const div = $(comp.id);
+    if (!div) return;
+    let money = 0, weightUsed = 0;
+    const rows = div.querySelectorAll(".c-ing-body tr");
+    rows.forEach((tr, idx) => {
+      const ing = comp.ingredients[idx];
+      if (!ing) return;
+      const ppg = ing.weightG > 0 ? ing.price / ing.weightG : 0;
+      const amount = ppg * ing.amountG;
+      tr.querySelector(".i-ppg").value = fmt5(ppg);
+      tr.querySelector(".i-money").value = fmt(amount);
+      money += amount;
+      weightUsed += ing.amountG;
+    });
+    const net = weightUsed * (1 - comp.waste / 100);
+    const costPerGram = net > 0 ? money / net : 0;
+    const contribution = costPerGram * comp.gpp;
+
+    div.querySelector(".c-total-weight").textContent = fmt(weightUsed);
+    div.querySelector(".c-total-money").textContent = fmt(money);
+    div.querySelector(".c-waste-echo").textContent = fmt(comp.waste);
+    div.querySelector(".c-net-weight").textContent = fmt(net);
+    div.querySelector(".c-cpg").textContent = fmt5(costPerGram);
+    div.querySelector(".c-gpp-echo").textContent = fmt(comp.gpp);
+    div.querySelector(".c-contribution").textContent = fmt(contribution);
+
+    totalContribution += contribution;
+  });
+  return totalContribution;
+}
+
+function calcPack() {
+  let total = 0;
+  packRows.forEach(row => {
+    const tr = $(row.id);
+    const ppu = row.packQty > 0 ? row.price / row.packQty : 0;
+    const amount = ppu * row.amountUsed;
+    tr.querySelector(".ppu").value = fmt5(ppu);
+    tr.querySelector(".amount").value = fmt(amount);
+    total += amount;
+  });
+  $("packTotal").textContent = fmt(total);
+  return total;
+}
+
+function calcLaborGroups() {
+  const rate = num($("laborRate").value);
+  let grandTotal = 0;
+  laborGroups.forEach(group => {
+    const div = $(group.id);
+    if (!div) return;
+    let subtotal = 0;
+    div.querySelectorAll(".g-steps tr").forEach((tr, idx) => {
+      const step = group.steps[idx];
+      if (!step) return;
+      const cost = step.unitsPerBatch > 0 ? (step.minutes * step.headcount * rate) / step.unitsPerBatch : 0;
+      tr.querySelector(".s-cost").value = fmt(cost);
+      subtotal += cost;
+    });
+    div.querySelector(".g-subtotal").textContent = fmt(subtotal);
+    grandTotal += subtotal;
+  });
+  $("laborGrandTotal").textContent = fmt(grandTotal);
+  return grandTotal;
+}
+
+function calcOverhead() {
+  const electric = num($("oh_electric").value);
+  const water = num($("oh_water").value);
+  const allowance = num($("oh_allowance").value);
+  const rent = num($("oh_rent").value);
+  const shipping = num($("oh_shipping").value);
+  const withRent = electric + water + allowance + rent + shipping;
+  const withoutRent = electric + water + allowance;
+  $("ohTotalA").textContent = fmt(withRent);
+  $("ohTotalB").textContent = fmt(withoutRent);
+  return { withRent, withoutRent };
+}
+
+function calcSummary() {
+  const raw = calcComponents();
+  const pack = calcPack();
+  const labor = calcLaborGroups();
+  const oh = calcOverhead();
+
+  $("s_raw_a").textContent = fmt(raw);
+  $("s_pack_a").textContent = fmt(pack);
+  $("s_labor_a").textContent = fmt(labor);
+  $("s_oh_a").textContent = fmt(oh.withRent);
+
+  const totalA = raw + pack + labor + oh.withRent;
+  const totalB = raw + pack + labor + oh.withoutRent; // เก็บไว้ใช้ในส่วนคำนวณโสหุ้ย/Excel เท่านั้น ไม่แสดงในตารางนี้แล้ว
+  $("s_total_a").textContent = fmt(totalA);
+
+  // cache สำหรับ Production Yield & Actual Cost (ใช้ totalA เป็น Standard Cost อ้างอิง)
+  lastStandardCostA = totalA;
+  lastComponentCosts = { raw, pack, labor, oh: oh.withRent };
+
+  // sync รายการ checkbox ต้นทุนที่เกิดขึ้นแล้วก่อนจุดสูญเสีย ให้ตรงกับส่วนประกอบ/บรรจุภัณฑ์/แผนกล่าสุด
+  if (typeof renderLossComponentCheckboxes === "function") renderLossComponentCheckboxes();
+
+  // คำนวณ Yield/Actual Cost ก่อน เพื่อนำมาเติมคอลัมน์ Actual ในตารางสรุปนี้
+  const y = (typeof calcYield === "function") ? calcYield() : null;
+  const hasActualCost = y && y.actualCost !== null && y.actualCost !== undefined;
+
+  if (hasActualCost) {
+    $("s_raw_b").textContent = fmt(y.actualComponents.raw);
+    $("s_pack_b").textContent = fmt(y.actualComponents.pack);
+    $("s_labor_b").textContent = fmt(y.actualComponents.labor);
+    $("s_oh_b").textContent = fmt(y.actualComponents.oh);
+    $("s_total_b").textContent = fmt(y.actualCost);
+  } else {
+    ["s_raw_b", "s_pack_b", "s_labor_b", "s_oh_b", "s_total_b"].forEach(id => $(id).textContent = "-");
+  }
+
+  const sellPrice = num($("f_sellprice").value);
+  const termId = $("f_tradeterm").value;
+  const term = termId ? termsCache.find(t => t.id === termId) : null;
+  const promoValue = num($("f_promoValue").value);
+  const promoUnit = $("f_promoUnit").value;
+  const promoDeduct = promoUnit === "percent" ? sellPrice * (promoValue / 100) : promoValue;
+
+  let netPrice = sellPrice;
+
+  if (term) {
+    const packPerBox = num($("f_pack").value);
+    const deductPct = termDeductPercent(term);
+    const deductBaht = termDeductBaht(term);
+    const deductAmount = sellPrice * (deductPct / 100) + deductBaht;
+    const dcCost = termDcCostPerUnit(term, packPerBox);
+    netPrice -= (deductAmount + dcCost);
+
+    $("row_deduct").style.display = "";
+    $("row_dccost").style.display = "";
+    $("deductPercentTag").textContent = deductBaht > 0 ? `${fmt(deductPct)}% + ${fmt(deductBaht)}฿` : `${fmt(deductPct)}%`;
+    $("s_deduct_a").textContent = fmt(deductAmount);
+    $("s_deduct_b").textContent = fmt(deductAmount);
+    $("s_dccost_a").textContent = fmt(dcCost);
+    $("s_dccost_b").textContent = fmt(dcCost);
+
+    const penalty = num(term.deliveryPenaltyPercent);
+    if (penalty > 0) {
+      $("deliveryPenaltyTag").style.display = "block";
+      $("deliveryPenaltyTag").textContent = `⚠ Delivery Penalty ${fmt(penalty)}% ของห้างนี้ยังไม่ถูกหักในราคาสุทธิ (จะเกิดเฉพาะกรณีส่งผิดเงื่อนไข)`;
+    } else {
+      $("deliveryPenaltyTag").style.display = "none";
+    }
+  } else {
+    $("row_deduct").style.display = "none";
+    $("row_dccost").style.display = "none";
+    $("deliveryPenaltyTag").style.display = "none";
+  }
+
+  if (promoValue !== 0) {
+    netPrice -= promoDeduct;
+    $("row_promo").style.display = "";
+    $("s_promo_a").textContent = fmt(promoDeduct);
+    $("s_promo_b").textContent = fmt(promoDeduct);
+  } else {
+    $("row_promo").style.display = "none";
+  }
+
+  if (term || promoValue !== 0) {
+    $("row_netprice").style.display = "";
+    $("s_net_a").textContent = fmt(netPrice);
+    $("s_net_b").textContent = fmt(netPrice);
+  } else {
+    $("row_netprice").style.display = "none";
+  }
+
+  const profitA = netPrice - totalA;
+  const profitB = hasActualCost ? (netPrice - y.actualCost) : null;
+  $("s_profit_a").textContent = fmt(profitA);
+  $("s_profit_b").textContent = profitB !== null ? fmt(profitB) : "-";
+
+  const marginA = netPrice > 0 ? (profitA / netPrice) * 100 : 0;
+  const marginB = (profitB !== null && netPrice > 0) ? (profitB / netPrice) * 100 : null;
+  renderMarkupPill("s_markup_a", marginA);
+  renderMarkupPill("s_markup_b", marginB);
+
+  return {
+    raw, pack, labor, overheadWithRent: oh.withRent, overheadWithoutRent: oh.withoutRent,
+    totalA, totalB, sellPrice, term, promoValue, promoUnit, promoDeduct, netPrice, profitA, profitB, marginA, marginB,
+    actualCost: hasActualCost ? y.actualCost : null,
+    actualComponents: hasActualCost ? y.actualComponents : null
+  };
+}
+function renderMarkupPill(id, val) {
+  if (val === null || val === undefined) { $(id).innerHTML = `<span class="pill">-</span>`; return; }
+  const cls = val >= 0 ? "pill-good" : "pill-bad";
+  $(id).innerHTML = `<span class="pill ${cls}">${fmt(val)}%</span>`;
+}
+
+/* ---------------------------- Production Yield / Actual Cost ---------------------------- */
+function defaultIncludeFlagsForStage(stage) {
+  if (stage === "ก่อนผสม") return { raw: false, labor: false, oh: false, pack: false };
+  if (stage === "หลังแพ็ก") return { raw: true, labor: true, oh: true, pack: true };
+  if (stage === "") return { raw: true, labor: true, oh: true, pack: false };
+  return { raw: true, labor: true, oh: true, pack: false }; // ทุก stage ระหว่างทาง: สินค้ายังไม่เข้าสู่การแพ็ก
+}
+
+function getRawItems() {
+  return components.map((c, idx) => {
+    const div = $(c.id);
+    const cost = div ? num(div.querySelector(".c-contribution").textContent.replace(/,/g, "")) : 0;
+    return { id: String(idx), name: c.name || "(ไม่มีชื่อ)", cost };
+  });
+}
+function getPackItems() {
+  return packRows.map((r, idx) => {
+    const tr = $(r.id);
+    const cost = tr ? num(tr.querySelector(".amount").value) : 0;
+    return { id: String(idx), name: r.name || "(ไม่มีชื่อ)", cost };
+  });
+}
+function getLaborItems() {
+  return laborGroups.map((g, idx) => {
+    const div = $(g.id);
+    const cost = div ? num(div.querySelector(".g-subtotal").textContent.replace(/,/g, "")) : 0;
+    return { id: String(idx), name: g.name || "(ไม่มีชื่อกลุ่ม)", cost };
+  });
+}
+function getOhItems() {
+  return OH_KEYS.map(o => ({ id: o.key, name: o.label, cost: num($("oh_" + o.key).value) }));
+}
+
+function renderLossComponentCheckboxes() {
+  const renderList = (containerId, items, mapObj) => {
+    const wrap = $(containerId);
+    if (!items.length) { wrap.innerHTML = `<div class="empty">— ไม่มีรายการ —</div>`; return; }
+    wrap.innerHTML = items.map(it => {
+      if (!(it.id in mapObj)) mapObj[it.id] = true;
+      const checked = mapObj[it.id] ? "checked" : "";
+      return `<label><span class="chk-name"><input type="checkbox" data-id="${it.id}" ${checked}> ${escapeHtml(it.name)}</span><span class="chk-val">${fmt(it.cost)} บ./ชิ้น</span></label>`;
+    }).join("");
+    wrap.querySelectorAll("input[type=checkbox]").forEach(cb => {
+      cb.addEventListener("change", () => { mapObj[cb.dataset.id] = cb.checked; calcSummary(); });
+    });
+  };
+  renderList("lossCompCheckboxes", getRawItems(), lossIncludeMap.comp);
+  renderList("lossPackCheckboxes", getPackItems(), lossIncludeMap.pack);
+  renderList("lossLaborCheckboxes", getLaborItems(), lossIncludeMap.labor);
+  renderList("lossOhCheckboxes", getOhItems(), lossIncludeMap.oh);
+}
+
+$("f_lossStage").addEventListener("change", () => {
+  const d = defaultIncludeFlagsForStage($("f_lossStage").value);
+  components.forEach((c, idx) => lossIncludeMap.comp[String(idx)] = d.raw);
+  packRows.forEach((r, idx) => lossIncludeMap.pack[String(idx)] = d.pack);
+  laborGroups.forEach((g, idx) => lossIncludeMap.labor[String(idx)] = d.labor);
+  OH_KEYS.forEach(o => lossIncludeMap.oh[o.key] = d.oh);
+  calcSummary();
+});
+
+// รวม cost ของรายการที่ "ติ๊ก" (เกิดขึ้นแล้ว) แยกจากรายการที่ "ไม่ติ๊ก" (ยังไม่เกิด) ในแต่ละหมวด
+function splitIncurred(items, mapObj) {
+  let incurred = 0, notIncurred = 0;
+  items.forEach(it => { if (mapObj[it.id] !== false) incurred += it.cost; else notIncurred += it.cost; });
+  return { incurred, notIncurred };
+}
+
+/* ----- โหมดคำนวณ Yield: Batch ปัจจุบัน / ค่าเฉลี่ยถ่วงน้ำหนักจากประวัติ ----- */
+function getYieldMode() {
+  return document.querySelector('input[name="yieldMode"]:checked')?.value || "current";
+}
+function getYieldInputs() {
+  const mode = getYieldMode();
+  if (mode === "average") {
+    if (!productionBatches.length) return { std: 0, actualRaw: "", available: false, mode };
+    const std = productionBatches.reduce((s, b) => s + num(b.std), 0);
+    const actual = productionBatches.reduce((s, b) => s + num(b.actual), 0);
+    return { std, actualRaw: String(actual), available: true, mode };
+  }
+  return { std: num($("f_stdOutput").value), actualRaw: $("f_actualOutput").value, available: true, mode };
+}
+
+["modeCurrentRadio", "modeAverageRadio"].forEach(id => $(id).addEventListener("change", () => {
+  const mode = getYieldMode();
+  const isAvg = mode === "average";
+  $("avgModeHint").style.display = isAvg ? "block" : "none";
+  $("f_stdOutput").readOnly = isAvg;
+  $("f_actualOutput").readOnly = isAvg;
+  $("addBatchHistoryBtn").disabled = isAvg;
+  $("addBatchHistoryBtn").title = isAvg ? "สลับเป็น \"Batch ปัจจุบัน\" ก่อนเพื่อบันทึกประวัติ" : "";
+  calcSummary();
+}));
+
+function calcYield() {
+  const inputs = getYieldInputs();
+  const std = inputs.std;
+  const hasActual = inputs.actualRaw !== "" && inputs.actualRaw !== null;
+  const actual = num(inputs.actualRaw);
+
+  if (inputs.mode === "average") {
+    $("f_stdOutput").value = inputs.available ? std : "";
+    $("f_actualOutput").value = inputs.available ? actual : "";
+  }
+  $("historyCountTag").textContent = productionBatches.length;
+
+  const standardCost = lastStandardCostA; // ต้นทุน/ชิ้นมาตรฐาน (รวมเช่า+ขนส่ง)
+  const standardBatchCost = standardCost * std;
+
+  // ----- ยังไม่มีข้อมูล -----
+  if (inputs.mode === "average" && !inputs.available) {
+    $("yieldNoDataMsg").style.display = "block";
+    $("yieldNoDataMsg").textContent = "ยังไม่มีประวัติ Batch ใน Loss Analysis สำหรับคำนวณค่าเฉลี่ย — บันทึกอย่างน้อย 1 Batch ก่อน หรือสลับกลับไปใช้ \"Batch ปัจจุบัน\"";
+    $("yieldStatsWrap").style.display = "none";
+    $("r_prodLoss").value = "-";
+    return null;
+  }
+  if (!hasActual || std <= 0) {
+    $("yieldNoDataMsg").style.display = "block";
+    $("yieldNoDataMsg").textContent = std <= 0
+      ? "กรุณากรอก Standard Output ก่อน เพื่อคำนวณ Yield และ Actual Cost"
+      : "ยังไม่มีข้อมูลผลผลิตจริง — กรอก \"Actual Good Output\" เพื่อคำนวณ Yield และ Actual Cost";
+    $("yieldStatsWrap").style.display = "none";
+    $("r_prodLoss").value = "-";
+    return null;
+  }
+
+  $("yieldNoDataMsg").style.display = "none";
+  $("yieldStatsWrap").style.display = "block";
+
+  const loss = Math.max(std - actual, 0);
+  const isOver = actual > std;
+  const isZero = actual === 0;
+  const yieldPct = (actual / std) * 100;
+  const lossPct = (loss / std) * 100;
+
+  $("r_prodLoss").value = fmt(loss);
+  $("y_std").textContent = fmt(std) + " ชิ้น";
+  $("y_actual").textContent = fmt(actual) + " ชิ้น";
+  $("y_loss").textContent = fmt(loss) + " ชิ้น";
+  $("y_yieldpct").textContent = fmt(yieldPct) + "%";
+  $("y_yieldpct").className = "val " + (isZero ? "warn" : (isOver ? "good" : ""));
+  $("y_losspct").textContent = "Loss " + fmt(lossPct) + "%";
+
+  $("y_overStatus").style.display = isOver ? "block" : "none";
+  if (isOver) $("y_overStatus").textContent = "✓ Actual Output สูงกว่ามาตรฐาน — สามารถวิเคราะห์ Production Efficiency ได้";
+
+  $("y_zeroStatus").style.display = isZero ? "block" : "none";
+  if (isZero) $("y_zeroStatus").textContent = "ไม่สามารถคำนวณ Actual Cost ได้ เนื่องจากยังไม่มีสินค้าดีที่ผลิตได้";
+
+  $("r_lossQty").value = fmt(loss);
+
+  // ----- Actual Cost ต่อชิ้น: คำนวณแยกรายรายการ (ส่วนประกอบ/บรรจุภัณฑ์/แผนก/ค่าใช้จ่ายโสหุ้ย) -----
+  // รายการที่ "ติ๊ก" (เกิดขึ้นแล้วก่อนจุดสูญเสีย) = เงินถูกใช้ไปกับทั้ง Batch ที่ตั้งใจผลิต (std) แล้ว
+  //   ต้องเฉลี่ยคืนทับจำนวนที่ผลิตได้จริง (actual) เท่านั้น -> ต้นทุน/ชิ้นเพิ่มขึ้น
+  // รายการที่ "ไม่ติ๊ก" (ยังไม่เกิด) = เงินใช้เฉพาะกับของที่รอดจริง (actual) เท่านั้น -> ต้นทุน/ชิ้นเท่าเดิม
+  const rawItems = getRawItems(), packItems = getPackItems(), laborItems = getLaborItems(), ohItems = getOhItems();
+  const rawSplit = splitIncurred(rawItems, lossIncludeMap.comp);
+  const packSplit = splitIncurred(packItems, lossIncludeMap.pack);
+  const laborSplit = splitIncurred(laborItems, lossIncludeMap.labor);
+  const ohSplit = splitIncurred(ohItems, lossIncludeMap.oh);
+
+  const scaleUp = (incurred, notIncurred) => isZero ? null : (incurred * std / actual + notIncurred);
+
+  let actualCost = null, actualComponents = null;
+  if (!isZero) {
+    const aRaw = scaleUp(rawSplit.incurred, rawSplit.notIncurred);
+    const aPack = scaleUp(packSplit.incurred, packSplit.notIncurred);
+    const aLabor = scaleUp(laborSplit.incurred, laborSplit.notIncurred);
+    const aOh = scaleUp(ohSplit.incurred, ohSplit.notIncurred);
+    actualComponents = { raw: aRaw, pack: aPack, labor: aLabor, oh: aOh };
+    actualCost = aRaw + aPack + aLabor + aOh;
+  }
+  const costIncrease = actualCost !== null ? actualCost - standardCost : null;
+  const costIncreasePct = (actualCost !== null && standardCost > 0) ? (costIncrease / standardCost) * 100 : null;
+  const actualBatchTotalSpent = actualCost !== null ? actualCost * actual : null; // เงินจริงที่ใช้ไปทั้งหมด
+
+  // ----- Standard vs Actual comparison table -----
+  $("c_std_out").textContent = fmt(std);
+  $("c_act_out").textContent = fmt(actual);
+  $("c_std_cost").textContent = fmt(standardCost);
+  $("c_act_cost").textContent = actualCost !== null ? fmt(actualCost) : "-";
+  $("c_std_batch").textContent = fmt(standardBatchCost);
+  $("c_act_batch").textContent = actualBatchTotalSpent !== null ? fmt(actualBatchTotalSpent) : "-";
+  $("c_act_yield").textContent = fmt(yieldPct) + "%";
+  $("c_act_loss").textContent = fmt(lossPct) + "%";
+  $("c_increase").textContent = costIncrease !== null
+    ? `${costIncrease >= 0 ? "+" : ""}${fmt(costIncrease)} บาท/ชิ้น (${costIncreasePct >= 0 ? "+" : ""}${fmt(costIncreasePct)}%)`
+    : "-";
+
+  // ----- Cost impact -----
+  $("i_lossqty").textContent = fmt(loss) + " ชิ้น";
+  $("i_losspct").textContent = fmt(lossPct) + "%";
+  $("i_yield").textContent = fmt(yieldPct) + "%";
+  $("i_std").textContent = fmt(standardCost) + " บาท";
+  $("i_act").textContent = actualCost !== null ? fmt(actualCost) + " บาท" : "-";
+  $("i_inc").textContent = costIncrease !== null ? `${costIncrease >= 0 ? "+" : ""}${fmt(costIncrease)} บาท/ชิ้น` : "-";
+
+  // Cost of Lost Production — มูลค่าต้นทุนที่ฝังอยู่ในชิ้นที่สูญเสียไป (เฉพาะรายการที่ติ๊ก ใช้ต้นทุน/ชิ้นมาตรฐาน)
+  const perPieceLostComponents = rawSplit.incurred + packSplit.incurred + laborSplit.incurred + ohSplit.incurred;
+  const lostCost = loss * perPieceLostComponents;
+  $("i_lostcost").textContent = fmt(lostCost) + " บาท (" + fmt(loss) + " ชิ้น × " + fmt(perPieceLostComponents) + " บาท/ชิ้น)";
+
+  $("r_lossQty").value = fmt(loss);
+
+  return {
+    std, actual, loss, isOver, isZero, yieldPct, lossPct,
+    standardCost, standardBatchCost, actualCost, actualComponents, actualBatchTotalSpent,
+    costIncrease, costIncreasePct, lostCost
+  };
+}
+
+["f_stdOutput", "f_actualOutput"].forEach(id => $(id).addEventListener("input", calcSummary));
+$("f_lossReason").addEventListener("change", () => {
+  $("f_lossReasonCustom").style.display = $("f_lossReason").value === "อื่น ๆ" ? "block" : "none";
+});
+$("f_lossReasonCustom").style.display = "none";
+
+/* ---------------------------- Loss Analysis history (หลาย Batch) ---------------------------- */
+function renderLossHistory() {
+  const body = $("lossHistoryBody");
+  body.innerHTML = "";
+  $("lossHistoryEmpty").style.display = productionBatches.length ? "none" : "block";
+  productionBatches.forEach((b, idx) => {
+    const tr = document.createElement("tr");
+    const dateLabel = b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("th-TH-u-ca-buddhist", { year: "2-digit", month: "2-digit", day: "2-digit" }) : "-";
+    const reason = b.lossReason === "อื่น ๆ" ? (b.lossReasonCustom || "อื่น ๆ") : (b.lossReason || "-");
+    tr.innerHTML = `
+      <td>${escapeHtml(dateLabel)}</td>
+      <td>${escapeHtml(b.batchLabel || "-")}</td>
+      <td>${escapeHtml(b.lossStage || "-")}</td>
+      <td class="num">${fmt(b.loss)}</td>
+      <td class="num">${fmt(b.lossPct)}%</td>
+      <td>${escapeHtml(reason)}</td>
+      <td class="num">${fmt(b.lostCost)} บาท</td>
+      <td><button class="row-del" title="ลบแถว">✕</button></td>
+    `;
+    tr.querySelector(".row-del").addEventListener("click", () => {
+      productionBatches.splice(idx, 1);
+      renderLossHistory();
+      if (getYieldMode() === "average") calcSummary();
+    });
+    body.appendChild(tr);
+  });
+  renderCharts();
+  $("historyCountTag").textContent = productionBatches.length;
+}
+
+function renderCharts() {
+  const wrap = $("lossChartsWrap");
+  if (productionBatches.length < 1) { wrap.style.display = "none"; return; }
+  wrap.style.display = "block";
+
+  const maxOut = Math.max(...productionBatches.map(b => Math.max(b.std, b.actual)), 1);
+  $("chartOutput").innerHTML = productionBatches.map(b => `
+    <div class="bar-row">
+      <div class="bar-label">${escapeHtml(b.batchLabel || "-")} (Std)</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(b.std / maxOut * 100).toFixed(1)}%"></div></div>
+      <div class="bar-val">${fmt(b.std)}</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">${escapeHtml(b.batchLabel || "-")} (Actual)</div>
+      <div class="bar-track"><div class="bar-fill alt" style="width:${(b.actual / maxOut * 100).toFixed(1)}%"></div></div>
+      <div class="bar-val">${fmt(b.actual)}</div>
+    </div>
+  `).join("");
+
+  $("chartYield").innerHTML = productionBatches.map(b => `
+    <div class="bar-row">
+      <div class="bar-label">${escapeHtml(b.batchLabel || "-")}</div>
+      <div class="bar-track"><div class="bar-fill ${b.yieldPct >= 100 ? "alt" : ""}" style="width:${Math.min(b.yieldPct, 100).toFixed(1)}%"></div></div>
+      <div class="bar-val">${fmt(b.yieldPct)}%</div>
+    </div>
+  `).join("");
+
+  const reasonMap = {};
+  productionBatches.forEach(b => {
+    const r = b.lossReason === "อื่น ๆ" ? (b.lossReasonCustom || "อื่น ๆ") : (b.lossReason || "ไม่ระบุ");
+    reasonMap[r] = (reasonMap[r] || 0) + b.loss;
+  });
+  const maxLoss = Math.max(...Object.values(reasonMap), 1);
+  $("chartReason").innerHTML = Object.entries(reasonMap).map(([r, q]) => `
+    <div class="bar-row">
+      <div class="bar-label">${escapeHtml(r)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(q / maxLoss * 100).toFixed(1)}%"></div></div>
+      <div class="bar-val">${fmt(q)} ชิ้น</div>
+    </div>
+  `).join("");
+}
+
+$("addBatchHistoryBtn").addEventListener("click", () => {
+  const y = calcYield();
+  if (!y) { alert("กรุณากรอก Standard Output และ Actual Good Output ก่อนบันทึกลงประวัติ"); return; }
+  productionBatches.push({
+    date: $("f_batchDate").value || new Date().toISOString().slice(0, 10),
+    batchLabel: $("f_batchLabel").value || `Batch ${productionBatches.length + 1}`,
+    std: y.std, actual: y.actual, loss: y.loss, yieldPct: y.yieldPct, lossPct: y.lossPct,
+    lossStage: $("f_lossStage").value,
+    lossReason: $("f_lossReason").value,
+    lossReasonCustom: $("f_lossReasonCustom").value,
+    remark: $("f_lossRemark").value,
+    lostCost: y.lostCost,
+    actualCost: y.actualCost,
+    costIncrease: y.costIncrease
+  });
+  renderLossHistory();
+});
+
+$("clearBatchBtn").addEventListener("click", () => {
+  if (!confirm("ล้างข้อมูล Standard Output / Actual Good Output / Loss Detail ของ Batch ปัจจุบัน?\n(ไม่กระทบประวัติที่บันทึกไว้แล้วใน Loss Analysis)")) return;
+  $("f_stdOutput").value = "";
+  $("f_actualOutput").value = "";
+  $("f_batchLabel").value = "";
+  $("f_batchDate").value = "";
+  $("f_lossStage").value = "";
+  $("f_lossReason").value = "";
+  $("f_lossReasonCustom").value = "";
+  $("f_lossReasonCustom").style.display = "none";
+  $("f_lossRemark").value = "";
+  lossIncludeMap = { comp: {}, pack: {}, labor: {}, oh: { electric: true, water: true, allowance: true, rent: true, shipping: true } };
+  calcSummary();
+});
+
+/* ---------------------------- buttons ---------------------------- */
+$("addComponentBtn").addEventListener("click", () => { makeComponent(); calcSummary(); });
+$("addPackBtn").addEventListener("click", () => { makePackRow(); calcSummary(); });
+$("addLaborGroupBtn").addEventListener("click", () => { makeLaborGroup(); calcSummary(); });
+
+["laborRate", "oh_electric", "oh_water", "oh_allowance", "oh_rent", "oh_shipping", "f_sellprice", "f_promoValue"]
+  .forEach(id => $(id).addEventListener("input", calcSummary));
+
+$("f_tradeterm").addEventListener("change", calcSummary);
+$("f_promoUnit").addEventListener("change", calcSummary);
+
+$("pullOverheadBtn").addEventListener("click", () => applyOverheadFromCategory(true));
+$("f_category").addEventListener("change", () => applyOverheadFromCategory(false));
+
+/* ---------------------------- save / load ---------------------------- */
+function collectData() {
+  return {
+    name: $("f_name").value,
+    code: $("f_code").value,
+    customer: $("f_customer").value,
+    category: $("f_category").value,
+    unit: $("f_unit").value,
+    weightPerUnit: num($("f_weight").value),
+    packPerBox: num($("f_pack").value),
+    owner: $("f_owner").value,
+    recipeVersion: $("f_version").value,
+    laborRatePerMinute: num($("laborRate").value),
+    components: components.map(c => ({
+      recipeId: c.recipeId || "",
+      name: c.name,
+      wastePercent: c.waste,
+      gramsPerPiece: c.gpp,
+      ingredients: c.ingredients.map(i => ({ code: i.code, name: i.name, price: i.price, weightG: i.weightG, amountG: i.amountG }))
+    })),
+    packaging: packRows.map(r => ({ code: r.code, name: r.name, price: r.price, packQty: r.packQty, amountUsed: r.amountUsed })),
+    laborGroups: laborGroups.map(g => ({
+      name: g.name,
+      templateId: g.templateId || "",
+      steps: g.steps.map(s => ({ department: s.department, minutes: s.minutes, headcount: s.headcount, unitsPerBatch: s.unitsPerBatch }))
+    })),
+    overhead: {
+      electric: num($("oh_electric").value),
+      water: num($("oh_water").value),
+      allowance: num($("oh_allowance").value),
+      rent: num($("oh_rent").value),
+      shipping: num($("oh_shipping").value)
+    },
+    sellingPrice: num($("f_sellprice").value),
+    tradeTermId: $("f_tradeterm").value || "",
+    promoValue: num($("f_promoValue").value),
+    promoUnit: $("f_promoUnit").value,
+    standardOutput: num($("f_stdOutput").value),
+    actualGoodOutput: $("f_actualOutput").value === "" ? null : num($("f_actualOutput").value),
+    batchLabel: $("f_batchLabel").value,
+    batchDate: $("f_batchDate").value,
+    lossStage: $("f_lossStage").value,
+    lossReason: $("f_lossReason").value,
+    lossReasonCustom: $("f_lossReasonCustom").value,
+    lossRemark: $("f_lossRemark").value,
+    lossIncludeMap: lossIncludeMap,
+    yieldMode: getYieldMode(),
+    productionBatches: productionBatches,
+    updatedAt: serverTimestamp ? serverTimestamp() : new Date()
+  };
+}
+
+/* ---------------------------- พิมพ์ / PDF ---------------------------- */
+$("printBtn").addEventListener("click", () => {
+  const name = $("f_name").value || "รายละเอียดต้นทุน";
+  const code = $("f_code").value ? ` (${$("f_code").value})` : "";
+  $("printTitle").textContent = name + code;
+  const today = new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
+  $("printMeta").textContent = `พิมพ์เมื่อ ${today}${currentDocId ? " — เวอร์ชันที่บันทึกไว้ล่าสุด" : " (ยังไม่ได้บันทึก)"}`;
+
+  const y = calcYield();
+  if (y) {
+    $("printSummaryBox").innerHTML = `
+      <div class="seg"><div class="lbl">STANDARD COST</div><div class="num">${fmt(y.standardCost)} บาท/ชิ้น</div></div>
+      <div class="seg"><div class="lbl">ACTUAL COST</div><div class="num">${y.actualCost !== null ? fmt(y.actualCost) + " บาท/ชิ้น" : "-"}</div></div>
+      <div class="seg"><div class="lbl">COST INCREASE</div><div class="num">${y.costIncrease !== null ? (y.costIncrease >= 0 ? "+" : "") + fmt(y.costIncrease) + " บาท/ชิ้น" : "-"}</div></div>
+      <div class="seg"><div class="lbl">YIELD</div><div class="num">${fmt(y.yieldPct)}%</div></div>
+      <div class="seg"><div class="lbl">LOSS</div><div class="num">${fmt(y.loss)} ชิ้น / ${fmt(y.lossPct)}%</div></div>
+    `;
+  } else {
+    $("printSummaryBox").innerHTML = "";
+  }
+  window.print();
+});
+
+/* ---------------------------- Export Excel ---------------------------- */
+$("exportExcelBtn").addEventListener("click", () => {
+  const s = calcSummary(); // ให้แน่ใจว่าตัวเลขล่าสุดถูกคำนวณก่อน export
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: ข้อมูลสินค้า + สรุปต้นทุน
+  const infoRows = [
+    ["ข้อมูลสินค้า", ""],
+    ["ชื่อสินค้า", $("f_name").value],
+    ["รหัสสินค้า", $("f_code").value],
+    ["ลูกค้า", $("f_customer").value],
+    ["ประเภท", $("f_category").value],
+    ["หน่วยขาย", $("f_unit").value],
+    ["น้ำหนัก (ก./ชิ้น)", num($("f_weight").value)],
+    ["การบรรจุ (ชิ้น/หีบ)", num($("f_pack").value)],
+    ["ผู้รับผิดชอบ", $("f_owner").value],
+    ["เวอร์ชันสูตร", $("f_version").value],
+    [],
+    ["สรุปต้นทุนต่อชิ้น", "Standard", "Actual"],
+    ["วัตถุดิบ", s.raw, s.actualComponents ? round2(s.actualComponents.raw) : ""],
+    ["บรรจุภัณฑ์", s.pack, s.actualComponents ? round2(s.actualComponents.pack) : ""],
+    ["ค่าแรง", s.labor, s.actualComponents ? round2(s.actualComponents.labor) : ""],
+    ["โสหุ้ยการผลิต", s.overheadWithRent, s.actualComponents ? round2(s.actualComponents.oh) : ""],
+    ["รวมต้นทุนต่อชิ้น", s.totalA, s.actualCost !== null ? round2(s.actualCost) : ""],
+    ["ราคาขายต่อชิ้น", s.sellPrice, s.sellPrice]
+  ];
+  if (s.term) {
+    const packPerBox = num($("f_pack").value);
+    const deductPct = termDeductPercent(s.term);
+    const deductBaht = termDeductBaht(s.term);
+    const deductAmount = s.sellPrice * (deductPct / 100) + deductBaht;
+    const dcCost = termDcCostPerUnit(s.term, packPerBox);
+    infoRows.push(["เงื่อนไขห้าง", s.term.store + (s.term.productType ? ` - ${s.term.productType}` : ""), ""]);
+    infoRows.push([`หักตามเงื่อนไขห้าง (${fmt(deductPct)}% + ${fmt(deductBaht)}฿)`, deductAmount, deductAmount]);
+    infoRows.push(["ค่า DC", dcCost, dcCost]);
+  }
+  if (s.promoValue) {
+    const promoLabel = s.promoUnit === "percent" ? `Promotion ห้าง (${fmt(s.promoValue)}%)` : `Promotion ห้าง (${fmt(s.promoValue)}฿)`;
+    infoRows.push([promoLabel, s.promoDeduct, s.promoDeduct]);
+  }
+  if (s.term || s.promoValue) {
+    infoRows.push(["ราคาสุทธิที่ได้รับ", s.netPrice, s.netPrice]);
+  }
+  infoRows.push(["กำไรหลังหักค่าใช้จ่าย", s.profitA, s.profitB !== null ? round2(s.profitB) : ""]);
+  infoRows.push(["Gross Margin (%)", s.marginA, s.marginB !== null ? round2(s.marginB) : ""]);
+
+  // Production / Yield / Actual Cost / Cost Impact
+  const y = calcYield();
+  infoRows.push([]);
+  infoRows.push(["Standard Output (ชิ้น/Batch)", y ? y.std : num($("f_stdOutput").value), ""]);
+  infoRows.push(["Actual Good Output (ชิ้น)", y ? y.actual : "", ""]);
+  infoRows.push(["Production Loss (ชิ้น)", y ? y.loss : "", ""]);
+  infoRows.push(["Yield (%)", y ? Math.round(y.yieldPct * 100) / 100 : "", ""]);
+  infoRows.push(["Loss (%)", y ? Math.round(y.lossPct * 100) / 100 : "", ""]);
+  infoRows.push([]);
+  infoRows.push(["ต้นทุนรวม Batch (บาท)", y ? round2(y.standardBatchCost) : "", (y && y.actualBatchTotalSpent !== null) ? round2(y.actualBatchTotalSpent) : ""]);
+  infoRows.push([]);
+  infoRows.push(["Cost Impact จากการสูญเสีย", ""]);
+  infoRows.push(["Cost Increase (บาท/ชิ้น)", y && y.costIncrease !== null ? Math.round(y.costIncrease * 10000) / 10000 : ""]);
+  infoRows.push(["Cost Increase (%)", y && y.costIncreasePct !== null ? Math.round(y.costIncreasePct * 100) / 100 : ""]);
+  infoRows.push(["Cost of Lost Production (บาท)", y ? Math.round(y.lostCost * 100) / 100 : ""]);
+  infoRows.push(["Loss Stage", $("f_lossStage").value]);
+  infoRows.push(["Loss Reason", $("f_lossReason").value === "อื่น ๆ" ? $("f_lossReasonCustom").value : $("f_lossReason").value]);
+  infoRows.push(["Remark", $("f_lossRemark").value]);
+
+  const ws1 = XLSX.utils.aoa_to_sheet(infoRows);
+  ws1["!cols"] = [{ wch: 30 }, { wch: 16 }, { wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, ws1, "สรุปต้นทุน");
+
+  // Sheet 2: ส่วนประกอบ (สูตรย่อย) — flatten ทุก component + ingredient
+  const compRows = [["ส่วนประกอบ", "Loss %", "กรัม/ชิ้น", "รหัสวัตถุดิบ", "ชื่อวัตถุดิบ", "ราคา", "น้ำหนัก/แพ็ค (ก.)", "ราคา/กรัม", "ใช้ (ก.)", "จำนวนเงิน"]];
+  components.forEach(comp => {
+    const div = $(comp.id);
+    const ingRows = div ? div.querySelectorAll(".c-ing-body tr") : [];
+    if (!comp.ingredients.length) {
+      compRows.push([comp.name, comp.waste, comp.gpp, "", "", "", "", "", "", ""]);
+    } else {
+      comp.ingredients.forEach((ing, idx) => {
+        const ppg = ing.weightG > 0 ? ing.price / ing.weightG : 0;
+        const amount = ppg * ing.amountG;
+        compRows.push([
+          idx === 0 ? comp.name : "",
+          idx === 0 ? comp.waste : "",
+          idx === 0 ? comp.gpp : "",
+          ing.code, ing.name, ing.price, ing.weightG, Math.round(ppg * 100000) / 100000, ing.amountG, Math.round(amount * 100) / 100
+        ]);
+      });
+    }
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(compRows);
+  ws2["!cols"] = [{ wch: 18 }, { wch: 8 }, { wch: 9 }, { wch: 12 }, { wch: 24 }, { wch: 9 }, { wch: 13 }, { wch: 11 }, { wch: 9 }, { wch: 11 }];
+  XLSX.utils.book_append_sheet(wb, ws2, "ส่วนประกอบ");
+
+  // Sheet 3: บรรจุภัณฑ์
+  const packHeader = ["รหัส", "รายการ", "ราคา", "จำนวน/แพ็ค", "ราคา/หน่วย", "ใช้", "จำนวนเงิน"];
+  const packSheetRows = [packHeader];
+  packRows.forEach(row => {
+    const ppu = row.packQty > 0 ? row.price / row.packQty : 0;
+    const amount = ppu * row.amountUsed;
+    packSheetRows.push([row.code, row.name, row.price, row.packQty, Math.round(ppu * 10000) / 10000, row.amountUsed, Math.round(amount * 100) / 100]);
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet(packSheetRows);
+  ws3["!cols"] = [{ wch: 12 }, { wch: 24 }, { wch: 9 }, { wch: 12 }, { wch: 11 }, { wch: 9 }, { wch: 11 }];
+  XLSX.utils.book_append_sheet(wb, ws3, "บรรจุภัณฑ์");
+
+  // Sheet 4: ค่าแรง
+  const laborHeader = ["กลุ่ม/แผนก", "ขั้นตอน", "เวลา (นาที)", "จำนวนคน", "ชิ้น/แบตช์", "ค่าแรง/ชิ้น"];
+  const laborSheetRows = [laborHeader];
+  const rate = num($("laborRate").value);
+  laborGroups.forEach(group => {
+    if (!group.steps.length) {
+      laborSheetRows.push([group.name, "", "", "", "", ""]);
+    } else {
+      group.steps.forEach((step, idx) => {
+        const cost = step.unitsPerBatch > 0 ? (step.minutes * step.headcount * rate) / step.unitsPerBatch : 0;
+        laborSheetRows.push([idx === 0 ? group.name : "", step.department, step.minutes, step.headcount, step.unitsPerBatch, Math.round(cost * 100) / 100]);
+      });
+    }
+  });
+  const ws4 = XLSX.utils.aoa_to_sheet(laborSheetRows);
+  ws4["!cols"] = [{ wch: 18 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 11 }];
+  XLSX.utils.book_append_sheet(wb, ws4, "ค่าแรง");
+
+  // Sheet 5: โสหุ้ยการผลิต
+  const ohRows = [
+    ["รายการ", "จำนวนเงิน"],
+    ["ค่าไฟฟ้า", num($("oh_electric").value)],
+    ["ค่าน้ำ", num($("oh_water").value)],
+    ["ค่าเผื่อ", num($("oh_allowance").value)],
+    ["ค่าเช่า", num($("oh_rent").value)],
+    ["ค่าขนส่ง", num($("oh_shipping").value)],
+    ["รวม (รวมเช่า+ขนส่ง)", s.overheadWithRent],
+    ["รวม (ไม่รวมเช่า+ขนส่ง)", s.overheadWithoutRent]
+  ];
+  const ws5 = XLSX.utils.aoa_to_sheet(ohRows);
+  ws5["!cols"] = [{ wch: 22 }, { wch: 12 }];
+  XLSX.utils.book_append_sheet(wb, ws5, "โสหุ้ย");
+
+  // Sheet 6: Loss Analysis (ประวัติ Batch)
+  const lossHeader = ["วันที่", "Batch", "Stage", "Loss Qty", "Loss %", "Reason", "Remark", "Actual Cost/ชิ้น", "Cost Increase/ชิ้น", "Cost Impact (บาท)"];
+  const lossRows = [lossHeader];
+  productionBatches.forEach(b => {
+    const reason = b.lossReason === "อื่น ๆ" ? (b.lossReasonCustom || "อื่น ๆ") : (b.lossReason || "");
+    lossRows.push([
+      b.date || "", b.batchLabel || "", b.lossStage || "",
+      b.loss, Math.round(b.lossPct * 100) / 100, reason, b.remark || "",
+      b.actualCost !== null ? Math.round(b.actualCost * 100) / 100 : "",
+      b.costIncrease !== null ? Math.round(b.costIncrease * 10000) / 10000 : "",
+      Math.round(b.lostCost * 100) / 100
+    ]);
+  });
+  const ws6 = XLSX.utils.aoa_to_sheet(lossRows);
+  ws6["!cols"] = [{ wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 9 }, { wch: 22 }, { wch: 30 }, { wch: 13 }, { wch: 14 }, { wch: 13 }];
+  XLSX.utils.book_append_sheet(wb, ws6, "Loss Analysis");
+
+  const fileName = `ต้นทุน-${$("f_name").value || "สินค้า"}-${$("f_code").value || "ไม่มีรหัส"}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+});
+
+$("saveBtn").addEventListener("click", async () => {
+  if (!db) {
+    alert("ยังไม่ได้ตั้งค่า Firebase (firebaseConfig) — กรุณาใส่ค่าคอนฟิกก่อนบันทึกจริง");
+    return;
+  }
+  const data = collectData();
+  try {
+    if (currentDocId) {
+      await setDoc(doc(db, PRODUCTS_COL, currentDocId), data, { merge: true });
+    } else {
+      const ref = await addDoc(collection(db, PRODUCTS_COL), data);
+      currentDocId = ref.id;
+      const url = new URL(location.href);
+      url.searchParams.set("id", currentDocId);
+      history.replaceState(null, "", url);
+    }
+    $("statusPill").textContent = "บันทึกแล้ว ✓";
+    setTimeout(() => { location.href = "dashboard.html"; }, 700);
+  } catch (e) {
+    console.error(e);
+    alert("บันทึกไม่สำเร็จ: " + e.message);
+  }
+});
+
+async function loadExisting() {
+  if (!db || !currentDocId) return;
+  const snap = await getDoc(doc(db, PRODUCTS_COL, currentDocId));
+  if (!snap.exists()) return;
+  const d = snap.data();
+  $("f_name").value = d.name || "";
+  $("f_code").value = d.code || "";
+  $("f_customer").value = d.customer || "";
+  $("f_category").value = d.category || "";
+  $("f_unit").value = d.unit || "ชิ้น";
+  $("f_weight").value = d.weightPerUnit || 0;
+  $("f_pack").value = d.packPerBox || 0;
+  $("f_owner").value = d.owner || "";
+  $("f_version").value = d.recipeVersion || "V.1";
+  $("laborRate").value = d.laborRatePerMinute || 0.78;
+  $("f_sellprice").value = d.sellingPrice || 0;
+  fillTradeTermSelect();
+  $("f_tradeterm").value = d.tradeTermId || "";
+  $("f_promoValue").value = d.promoValue || 0;
+  $("f_promoUnit").value = d.promoUnit || "percent";
+  const oh = d.overhead || {};
+  $("oh_electric").value = oh.electric || 0;
+  $("oh_water").value = oh.water || 0;
+  $("oh_allowance").value = (oh.allowance ?? oh.gas) || 0;
+  $("oh_rent").value = oh.rent || 0;
+  $("oh_shipping").value = oh.shipping || 0;
+  if (d.category) $("ohSourceTag").textContent = `ต่อชิ้น — ประเภท: ${d.category}`;
+
+  (d.components || []).forEach(c => {
+    const comp = makeComponent();
+    comp.recipeId = c.recipeId || "";
+    comp.name = c.name || "";
+    comp.waste = c.wastePercent || 0;
+    comp.gpp = c.gramsPerPiece || 0;
+    comp.ingredients = (c.ingredients || []).map(i => ({ ...i }));
+    const div = $(comp.id);
+    div.querySelector(".c-recipe").value = comp.recipeId;
+    div.querySelector(".c-name").value = comp.name;
+    div.querySelector(".c-waste").value = comp.waste;
+    div.querySelector(".c-gpp").value = comp.gpp;
+    div.querySelector(".c-ing-body").innerHTML = "";
+    if (comp.ingredients.length) {
+      comp.ingredients.forEach(ing => renderIngredientRow(comp, div, ing));
+    } else {
+      addIngredientRow(comp, div);
+    }
+  });
+  (d.packaging || []).forEach(m => {
+    const row = makePackRow();
+    Object.assign(row, { code: m.code, name: m.name, price: m.price, packQty: m.packQty, amountUsed: m.amountUsed });
+    const tr = $(row.id);
+    tr.querySelector(".code").value = row.code;
+    tr.querySelector(".name").value = row.name;
+    tr.querySelector(".price").value = row.price;
+    tr.querySelector(".packQty").value = row.packQty;
+    tr.querySelector(".amountUsed").value = row.amountUsed;
+  });
+  const groupsData = d.laborGroups && d.laborGroups.length
+    ? d.laborGroups
+    : (d.laborSteps && d.laborSteps.length ? [{ name: "ทั่วไป", steps: d.laborSteps }] : []);
+  groupsData.forEach(g => {
+    const group = makeLaborGroup();
+    group.name = g.name || "";
+    group.templateId = g.templateId || "";
+    const div = $(group.id);
+    div.querySelector(".g-name").value = group.name;
+    div.querySelector(".g-template").value = group.templateId;
+    group.steps = [];
+    div.querySelector(".g-steps").innerHTML = "";
+    const steps = g.steps || [];
+    if (steps.length) {
+      steps.forEach(s => addLaborStep(group, div, { department: s.department, minutes: s.minutes, headcount: s.headcount, unitsPerBatch: s.unitsPerBatch }));
+    } else {
+      addLaborStep(group, div);
+    }
+  });
+
+  $("f_stdOutput").value = d.standardOutput || "";
+  $("f_actualOutput").value = (d.actualGoodOutput === null || d.actualGoodOutput === undefined) ? "" : d.actualGoodOutput;
+  $("f_batchLabel").value = d.batchLabel || "";
+  $("f_batchDate").value = d.batchDate || "";
+  $("f_lossStage").value = d.lossStage || "";
+  $("f_lossReason").value = d.lossReason || "";
+  $("f_lossReasonCustom").value = d.lossReasonCustom || "";
+  $("f_lossReasonCustom").style.display = d.lossReason === "อื่น ๆ" ? "block" : "none";
+  $("f_lossRemark").value = d.lossRemark || "";
+  lossIncludeMap = d.lossIncludeMap || { comp: {}, pack: {}, labor: {}, oh: { electric: true, water: true, allowance: true, rent: true, shipping: true } };
+  if (!lossIncludeMap.oh) lossIncludeMap.oh = { electric: true, water: true, allowance: true, rent: true, shipping: true };
+  const savedMode = d.yieldMode === "average" ? "average" : "current";
+  $("modeCurrentRadio").checked = savedMode === "current";
+  $("modeAverageRadio").checked = savedMode === "average";
+  $("avgModeHint").style.display = savedMode === "average" ? "block" : "none";
+  $("f_stdOutput").readOnly = savedMode === "average";
+  $("f_actualOutput").readOnly = savedMode === "average";
+  $("addBatchHistoryBtn").disabled = savedMode === "average";
+  productionBatches = (d.productionBatches || []).map(b => ({ ...b }));
+  renderLossHistory();
+
+  $("statusPill").textContent = "แก้ไข";
+  calcSummary();
+}
+
+/* ---------------------------- init ---------------------------- */
+(async function init() {
+  await loadMaterials();
+  await loadRecipes();
+  await loadLaborSteps();
+  await loadOverheadAllocations();
+  await loadTradeTerms();
+  if (currentDocId) {
+    await loadExisting();
+  } else {
+    makeComponent();
+    makePackRow();
+    makeLaborGroup();
+    renderLossHistory();
+  }
+  calcSummary();
+})();
+</script>
+
+</body>
+</html>

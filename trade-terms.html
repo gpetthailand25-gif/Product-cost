@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เงื่อนไขห้าง (Trade Terms) — ระบบต้นทุน NPD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1e3a5f;
+    --navy-dark:#152944;
+    --gray-bg:#f4f6f8;
+    --gray-border:#dfe4ea;
+    --gray-text:#5b6672;
+    --green:#1e8e5a;
+    --green-dark:#166b45;
+    --red:#c0392b;
+    --red-dark:#a3311f;
+    --amber:#b7791f;
+    --white:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Sarabun',sans-serif;
+    background:var(--gray-bg);
+    color:#1f2937;
+    font-variant-numeric: tabular-nums;
+  }
+  header.topbar{
+    background:var(--navy); color:#fff; padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+  header.topbar h1{font-size:17px; font-weight:600; margin:0; display:flex; align-items:center; gap:8px;}
+  header.topbar .actions{display:flex; gap:8px; flex-wrap:wrap;}
+  nav.subnav{background:var(--navy-dark); padding:0 24px; display:flex; gap:2px; flex-wrap:wrap;}
+  nav.subnav a{
+    color:rgba(255,255,255,0.75); text-decoration:none; font-size:13px;
+    padding:10px 14px; display:inline-block; border-bottom:2px solid transparent;
+  }
+  nav.subnav a.active{color:#fff; border-bottom-color:#fff; font-weight:600;}
+  nav.subnav a:hover{color:#fff;}
+
+  .btn{
+    border:none; border-radius:6px; padding:8px 16px; font-family:inherit;
+    font-size:13.5px; font-weight:600; cursor:pointer; transition:filter .15s ease;
+    white-space:nowrap; text-decoration:none; display:inline-block;
+  }
+  .btn:hover{filter:brightness(0.94);}
+  .btn:active{filter:brightness(0.88);}
+  .btn-green{background:var(--green); color:#fff;}
+  .btn-green:hover{background:var(--green-dark);}
+  .btn-red{background:var(--red); color:#fff;}
+  .btn-red:hover{background:var(--red-dark);}
+  .btn-ghost{background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.35);}
+  .btn-outline{background:#fff; color:var(--navy); border:1px solid var(--gray-border);}
+  .btn-outline:hover{background:#f0f3f6;}
+  .btn-sm{padding:5px 11px; font-size:12.5px;}
+
+  main{max-width:1180px; margin:0 auto; padding:20px 24px 80px;}
+
+  .card{background:var(--white); border:1px solid var(--gray-border); border-radius:10px; overflow:hidden; margin-bottom:20px;}
+  .card-head{
+    padding:14px 18px; border-bottom:1px solid var(--gray-border);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  .card-head h2{font-size:15px; margin:0; color:var(--navy); font-weight:600; display:flex; align-items:center; gap:8px;}
+  .card-head .hint{font-size:12px; color:var(--gray-text); font-weight:400;}
+  .card-body{padding:16px 18px;}
+
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
+  .search-wrap{position:relative; flex:1; min-width:220px;}
+  .search-wrap input{
+    width:100%; padding:9px 12px 9px 32px; border:1px solid var(--gray-border);
+    border-radius:8px; font-family:inherit; font-size:13.5px;
+  }
+  .search-wrap::before{content:"🔎"; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; opacity:.6;}
+
+  label{display:block; font-size:12px; color:var(--gray-text); margin-bottom:4px; font-weight:500;}
+  input[type=text], input[type=number], select{
+    width:100%; padding:7px 9px; border:1px solid var(--gray-border);
+    border-radius:6px; font-family:inherit; font-size:13.5px; background:#fff; color:#1f2937;
+  }
+  input:focus, select:focus{outline:2px solid var(--navy); outline-offset:0; border-color:var(--navy);}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.02em;
+    color:var(--gray-text); border-bottom:1px solid var(--gray-border);
+    padding:8px 8px; font-weight:600; white-space:nowrap;
+  }
+  tbody td{padding:7px 8px; border-bottom:1px solid #eef1f4; vertical-align:middle;}
+  tbody tr:hover{background:#fafbfc;}
+  tbody tr.editing-row{background:#eef4fb;}
+  .num{text-align:right;}
+  .table-wrap{overflow-x:auto;}
+  .row-actions{display:flex; gap:6px; white-space:nowrap;}
+  .check-yes{color:var(--green); font-weight:700;}
+  .check-no{color:var(--gray-border); font-weight:700;}
+  .empty-state{padding:40px 20px; text-align:center; color:var(--gray-text); font-size:13.5px;}
+  .type-tag{font-size:11.5px; color:var(--gray-text);}
+
+  .field-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:12px 16px;}
+  @media(max-width:820px){ .field-grid{grid-template-columns:repeat(2, 1fr);} }
+  .field-grid-2{display:grid; grid-template-columns:repeat(2, 1fr); gap:12px 16px;}
+  @media(max-width:700px){ .field-grid-2{grid-template-columns:1fr;} }
+
+  .checkbox-row{display:flex; align-items:center; gap:8px; margin:6px 0 4px;}
+  .checkbox-row input{width:auto;}
+  .checkbox-row label{margin:0; font-size:13.5px; color:#374151; font-weight:500;}
+
+  .deduct-row{display:grid; grid-template-columns:1fr 100px 84px 34px; gap:8px; margin-bottom:8px; align-items:center;}
+  .deduct-total{
+    text-align:right; font-size:13.5px; font-weight:700; color:var(--navy);
+    padding-top:6px; border-top:1px solid var(--gray-border); margin-top:4px;
+  }
+  .add-row-btn{
+    margin-top:4px; font-size:12.5px; color:var(--navy); background:none;
+    border:1px dashed var(--gray-border); border-radius:6px; padding:6px 12px; cursor:pointer;
+  }
+  .add-row-btn:hover{background:#f0f3f6;}
+  .row-del{background:none; border:none; color:var(--red); cursor:pointer; font-size:16px; line-height:1; padding:4px;}
+  .row-del:hover{color:var(--red-dark);}
+
+  .section-label{
+    font-size:12.5px; font-weight:600; color:var(--navy); margin:18px 0 8px;
+    padding-bottom:6px; border-bottom:1px solid var(--gray-border);
+  }
+  .form-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:18px;}
+  .sub-hint{font-size:11.5px; color:var(--gray-text); margin-top:3px;}
+  .page-header-sticky{position:sticky; top:0; z-index:100;}
+</style>
+</head>
+<body>
+
+<div class="page-header-sticky">
+<header class="topbar">
+  <h1>🏬 เงื่อนไขห้าง (Trade Terms)</h1>
+  <div class="actions">
+    <a class="btn btn-ghost btn-sm" href="dashboard.html" style="text-decoration:none; color:#fff;">← สรุปรายการต้นทุน</a>
+  </div>
+</header>
+<nav class="subnav">
+  <a href="dashboard.html">สรุปรายการต้นทุน</a>
+  <a href="cost-detail.html">รายละเอียดต้นทุน</a>
+  <a href="materials.html">คลังวัตถุดิบ/บรรจุภัณฑ์</a>
+  <a href="#" class="active">เงื่อนไขห้าง</a>
+  <a href="overhead-allocation.html">ปันส่วนโสหุ้ย</a>
+  <a href="recipes.html">คลังสูตร</a>
+  <a href="labor-steps.html">คลังขั้นตอนการทำ</a>
+</nav>
+</div>
+
+<main>
+
+  <!-- ตารางเงื่อนไขห้าง -->
+  <section class="card">
+    <div class="card-head">
+      <h2>รายการเงื่อนไขห้าง <span class="hint" id="countTag">(0 รายการ)</span></h2>
+      <button class="btn btn-green btn-sm" id="newBtn">+ เพิ่มเงื่อนไขห้าง</button>
+    </div>
+    <div class="card-body">
+      <div class="toolbar">
+        <div class="search-wrap"><input type="text" id="searchBox" placeholder="ค้นหาห้าง/ช่องทาง..."></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:22%">ห้าง/ช่องทาง</th>
+            <th style="width:16%">ประเภท</th>
+            <th class="num" style="width:15%">รวมหัก</th>
+            <th style="width:8%">ยืนยัน</th>
+            <th style="width:140px"></th>
+          </tr></thead>
+          <tbody id="termsBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none;">ยังไม่มีเงื่อนไขห้าง — กด "+ เพิ่มเงื่อนไขห้าง" เพื่อเริ่มต้น</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ฟอร์มเพิ่ม/แก้ไข -->
+  <section class="card">
+    <div class="card-head">
+      <h2 id="formTitle">📝 เพิ่มเงื่อนไขห้าง</h2>
+      <span class="hint" id="editingHint"></span>
+    </div>
+    <div class="card-body">
+      <div class="field-grid">
+        <div><label>ห้าง/ช่องทาง</label><input type="text" id="f_store" placeholder="เช่น Lotus, Big-C, TikTok"></div>
+        <div><label>รหัสผู้ขาย</label><input type="text" id="f_vendorCode" placeholder="เช่น 103403"></div>
+        <div>
+          <label>ประเภทสินค้า</label>
+          <select id="f_productType">
+            <option value="">— เลือกประเภท —</option>
+            <option>ของสด</option>
+            <option>ของแห้ง</option>
+            <option>แช่แข็ง</option>
+            <option>อุณหภูมิห้อง</option>
+            <option>ออนไลน์</option>
+            <option>เปลี่ยนแพคเกจ</option>
+            <option>ไส้ขนม</option>
+          </select>
+        </div>
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="f_confirmed">
+        <label for="f_confirmed">ยืนยันตัวเลขแล้ว</label>
+      </div>
+
+      <div class="section-label">รายการหัก (% หรือ บาท)</div>
+      <div id="deductWrap"></div>
+      <button class="add-row-btn" id="addDeductBtn">+ เพิ่มรายการ</button>
+      <div class="deduct-total">รวม <span id="deductTotalPercent">0.00</span>% <span id="deductTotalBahtWrap" style="display:none;">+ <span id="deductTotalBaht">0.00</span> บาท</span></div>
+
+      <div class="section-label">DC cost</div>
+      <div class="field-grid-2">
+        <div>
+          <label>ค่าเช่าตะกร้า (บาท/หีบ, แช่เย็น) — หารด้วยชิ้น/หีบเป็นต้นทุนต่อชิ้น</label>
+          <input type="number" step="0.01" id="f_basketFee" value="0">
+        </div>
+        <div>
+          <label>ค่ากระจาย DC (บาท/หีบ) — ใช้เมื่อไม่มีตารางเรท + ชิ้น/หีบ</label>
+          <input type="number" step="0.01" id="f_dcFee" value="0">
+        </div>
+      </div>
+
+      <div class="section-label">Delivery Penalty</div>
+      <div class="field-grid-2">
+        <div>
+          <label>Delivery Penalty (%) — แยก ไม่รวมในรวมหัก</label>
+          <input type="number" step="0.01" id="f_deliveryPenalty" value="0">
+        </div>
+        <div>
+          <label>หมายเหตุ</label>
+          <input type="text" id="f_note" placeholder="หมายเหตุเพิ่มเติม">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-outline" id="cancelBtn">ยกเลิก</button>
+        <button class="btn btn-green" id="saveBtn">💾 บันทึก</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script type="module">
+import {
+  collection, doc, getDocs, setDoc, addDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from "./firebase-config.js";
+
+const TERMS_COL = "tradeTerms";
+const $ = (id) => document.getElementById(id);
+const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const fmt = (n) => (Math.round(n * 100) / 100).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+let terms = [];
+let deductItems = [];
+let deductSeq = 0;
+let editingId = null;
+let searchTerm = "";
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeAttr(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+/* ---------------------------- load ---------------------------- */
+async function loadTerms() {
+  if (!db) { renderTable(); return; }
+  try {
+    const snap = await getDocs(collection(db, TERMS_COL));
+    terms = [];
+    snap.forEach(d => terms.push({ id: d.id, ...d.data() }));
+    terms.sort((a, b) => (a.store || "").localeCompare(b.store || "", "th"));
+  } catch (e) {
+    console.warn("โหลดเงื่อนไขห้างไม่สำเร็จ", e);
+  }
+  renderTable();
+}
+
+/* ---------------------------- table render ---------------------------- */
+function filteredTerms() {
+  if (!searchTerm) return terms;
+  const q = searchTerm.toLowerCase();
+  return terms.filter(t => ((t.store || "") + " " + (t.productType || "")).toLowerCase().includes(q));
+}
+
+function renderTable() {
+  const body = $("termsBody");
+  body.innerHTML = "";
+  const list = filteredTerms();
+  $("countTag").textContent = `(${list.length} รายการ)`;
+  $("emptyState").style.display = list.length === 0 ? "block" : "none";
+
+  list.forEach(t => {
+    const items = t.deductItems || [];
+    const totalPct = items.filter(d => (d.unit || "percent") === "percent").reduce((s, d) => s + num(d.percent ?? d.value), 0);
+    const totalBaht = items.filter(d => d.unit === "baht").reduce((s, d) => s + num(d.value ?? d.percent), 0);
+    const deductLabel = totalBaht > 0 ? `${fmt(totalPct)}% + ${fmt(totalBaht)}฿` : `${fmt(totalPct)}%`;
+    const tr = document.createElement("tr");
+    if (t.id === editingId) tr.classList.add("editing-row");
+    tr.innerHTML = `
+      <td>${escapeHtml(t.store || "-")}${t.vendorCode ? ` <span class="type-tag">(${escapeHtml(t.vendorCode)})</span>` : ""}</td>
+      <td><span class="type-tag">${escapeHtml(t.productType || "-")}</span></td>
+      <td class="num">${deductLabel}</td>
+      <td>${t.confirmed ? '<span class="check-yes">✓</span>' : '<span class="check-no">—</span>'}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn btn-outline btn-sm edit-btn">แก้ไข</button>
+          <button class="btn btn-red btn-sm del-btn">ลบ</button>
+        </div>
+      </td>
+    `;
+    tr.querySelector(".edit-btn").addEventListener("click", () => loadIntoForm(t));
+    tr.querySelector(".del-btn").addEventListener("click", () => deleteTerm(t));
+    body.appendChild(tr);
+  });
+}
+
+/* ---------------------------- deduct items (form) ---------------------------- */
+function addDeductItem(item) {
+  const d = item || { name: "", value: 0, unit: "percent" };
+  const id = "d" + (++deductSeq);
+  const unit = d.unit || (d.percent !== undefined ? "percent" : "percent");
+  const value = d.value !== undefined ? num(d.value) : num(d.percent);
+  const row = { id, name: d.name || "", value, unit };
+  deductItems.push(row);
+  renderDeductRow(row);
+  calcDeductTotal();
+  return row;
+}
+function renderDeductRow(row) {
+  const div = document.createElement("div");
+  div.className = "deduct-row";
+  div.id = row.id;
+  div.innerHTML = `
+    <input type="text" class="dr-name" value="${escapeAttr(row.name)}" placeholder="เช่น Rebate Unconditioned, DC Fee">
+    <input type="number" step="0.01" class="dr-value" value="${row.value}">
+    <select class="dr-unit">
+      <option value="percent" ${row.unit === "percent" ? "selected" : ""}>%</option>
+      <option value="baht" ${row.unit === "baht" ? "selected" : ""}>บาท</option>
+    </select>
+    <button class="row-del dr-del" title="ลบรายการ">✕</button>
+  `;
+  $("deductWrap").appendChild(div);
+  div.querySelector(".dr-name").addEventListener("input", (e) => { row.name = e.target.value; });
+  div.querySelector(".dr-value").addEventListener("input", (e) => { row.value = num(e.target.value); calcDeductTotal(); });
+  div.querySelector(".dr-unit").addEventListener("change", (e) => { row.unit = e.target.value; calcDeductTotal(); });
+  div.querySelector(".dr-del").addEventListener("click", () => {
+    deductItems = deductItems.filter(d => d.id !== row.id);
+    div.remove();
+    calcDeductTotal();
+  });
+}
+function calcDeductTotal() {
+  const totalPct = deductItems.filter(d => d.unit === "percent").reduce((s, d) => s + num(d.value), 0);
+  const totalBaht = deductItems.filter(d => d.unit === "baht").reduce((s, d) => s + num(d.value), 0);
+  $("deductTotalPercent").textContent = fmt(totalPct);
+  $("deductTotalBaht").textContent = fmt(totalBaht);
+  $("deductTotalBahtWrap").style.display = totalBaht > 0 ? "inline" : "none";
+  return { totalPct, totalBaht };
+}
+
+/* ---------------------------- form load / reset ---------------------------- */
+function resetForm() {
+  editingId = null;
+  $("formTitle").textContent = "📝 เพิ่มเงื่อนไขห้าง";
+  $("editingHint").textContent = "";
+  $("f_store").value = "";
+  $("f_vendorCode").value = "";
+  $("f_productType").value = "";
+  $("f_confirmed").checked = false;
+  $("f_basketFee").value = 0;
+  $("f_dcFee").value = 0;
+  $("f_deliveryPenalty").value = 0;
+  $("f_note").value = "";
+  deductItems = [];
+  $("deductWrap").innerHTML = "";
+  addDeductItem();
+  calcDeductTotal();
+  renderTable();
+}
+
+function loadIntoForm(t) {
+  editingId = t.id;
+  $("formTitle").textContent = "✏️ แก้ไขเงื่อนไขห้าง";
+  $("editingHint").textContent = `กำลังแก้ไข: ${t.store || ""}`;
+  $("f_store").value = t.store || "";
+  $("f_vendorCode").value = t.vendorCode || "";
+  $("f_productType").value = t.productType || "";
+  $("f_confirmed").checked = !!t.confirmed;
+  const dc = t.dcCost || {};
+  $("f_basketFee").value = dc.basketFeePerUnit ?? 0;
+  $("f_dcFee").value = dc.dcDispatchFeePerCase ?? 0;
+  $("f_deliveryPenalty").value = t.deliveryPenaltyPercent ?? 0;
+  $("f_note").value = t.note || "";
+
+  deductItems = [];
+  $("deductWrap").innerHTML = "";
+  const items = t.deductItems || [];
+  if (items.length) {
+    items.forEach(d => addDeductItem(d));
+  } else {
+    addDeductItem();
+  }
+  calcDeductTotal();
+  renderTable();
+  document.querySelector(".card:nth-child(2)").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ---------------------------- save / delete ---------------------------- */
+function collectFormData() {
+  return {
+    store: $("f_store").value.trim(),
+    vendorCode: $("f_vendorCode").value.trim(),
+    productType: $("f_productType").value,
+    confirmed: $("f_confirmed").checked,
+    deductItems: deductItems
+      .filter(d => d.name.trim() !== "" || num(d.value) !== 0)
+      .map(d => ({ name: d.name.trim(), value: num(d.value), unit: d.unit || "percent" })),
+    dcCost: {
+      basketFeePerUnit: num($("f_basketFee").value),
+      dcDispatchFeePerCase: num($("f_dcFee").value)
+    },
+    deliveryPenaltyPercent: num($("f_deliveryPenalty").value),
+    note: $("f_note").value.trim()
+  };
+}
+
+$("saveBtn").addEventListener("click", async () => {
+  const data = collectFormData();
+  if (!data.store) {
+    alert("กรุณากรอกชื่อห้าง/ช่องทางก่อนบันทึก");
+    return;
+  }
+  if (!db) {
+    alert("ยังไม่ได้ตั้งค่า Firebase (firebaseConfig) — กรุณาใส่ค่าคอนฟิกก่อนบันทึกจริง");
+    return;
+  }
+  const saveBtn = $("saveBtn");
+  const originalLabel = saveBtn.textContent;
+  saveBtn.textContent = "กำลังบันทึก...";
+  saveBtn.disabled = true;
+
+  const withTimeout = (promise, ms) => Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), ms))
+  ]);
+
+  try {
+    if (editingId) {
+      await withTimeout(setDoc(doc(db, TERMS_COL, editingId), data, { merge: true }), 10000);
+      const idx = terms.findIndex(t => t.id === editingId);
+      if (idx > -1) terms[idx] = { id: editingId, ...data };
+    } else {
+      const ref = await withTimeout(addDoc(collection(db, TERMS_COL), data), 10000);
+      terms.push({ id: ref.id, ...data });
+    }
+    terms.sort((a, b) => (a.store || "").localeCompare(b.store || "", "th"));
+    resetForm();
+    saveBtn.textContent = "บันทึกแล้ว ✓";
+    setTimeout(() => { saveBtn.textContent = originalLabel; saveBtn.disabled = false; }, 1000);
+  } catch (e) {
+    console.error(e);
+    if (e.message === "TIMEOUT") {
+      alert("บันทึกไม่สำเร็จ: การเชื่อมต่อ Firestore ช้าเกินไป (เกิน 10 วินาที)\n\nสาเหตุที่พบบ่อยที่สุดคือ Firestore Security Rules ยังปิดกั้นการเขียนข้อมูลอยู่ (ค่าเริ่มต้นคือ deny ทั้งหมด) กรุณาตรวจสอบที่ Firebase Console → Firestore Database → Rules");
+    } else {
+      alert("บันทึกไม่สำเร็จ: " + e.message);
+    }
+    saveBtn.textContent = originalLabel;
+    saveBtn.disabled = false;
+  }
+});
+
+$("cancelBtn").addEventListener("click", resetForm);
+$("newBtn").addEventListener("click", () => {
+  resetForm();
+  document.querySelector(".card:nth-child(2)").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("addDeductBtn").addEventListener("click", () => addDeductItem());
+
+async function deleteTerm(t) {
+  if (!confirm(`ลบเงื่อนไขห้าง "${t.store || "รายการนี้"}" ใช่หรือไม่?`)) return;
+  if (db) {
+    try {
+      await deleteDoc(doc(db, TERMS_COL, t.id));
+    } catch (e) {
+      console.error(e);
+      alert("ลบไม่สำเร็จ: " + e.message);
+      return;
+    }
+  }
+  terms = terms.filter(x => x.id !== t.id);
+  if (editingId === t.id) resetForm();
+  else renderTable();
+}
+
+/* ---------------------------- search ---------------------------- */
+$("searchBox").addEventListener("input", (e) => {
+  searchTerm = e.target.value;
+  renderTable();
+});
+
+/* ---------------------------- init ---------------------------- */
+(async function init() {
+  addDeductItem();
+  await loadTerms();
+})();
+</script>
+
+</body>
+</html>

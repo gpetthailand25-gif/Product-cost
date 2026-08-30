@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คลังขั้นตอนการทำ — ระบบต้นทุน NPD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1e3a5f;
+    --navy-dark:#152944;
+    --gray-bg:#f4f6f8;
+    --gray-border:#dfe4ea;
+    --gray-text:#5b6672;
+    --green:#1e8e5a;
+    --green-dark:#166b45;
+    --teal:#0f766e;
+    --teal-dark:#0b5a54;
+    --red:#c0392b;
+    --red-dark:#a3311f;
+    --amber:#b7791f;
+    --white:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Sarabun',sans-serif;
+    background:var(--gray-bg);
+    color:#1f2937;
+    font-variant-numeric: tabular-nums;
+  }
+  header.topbar{
+    background:var(--navy); color:#fff; padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+  header.topbar h1{font-size:17px; font-weight:600; margin:0; display:flex; align-items:center; gap:8px;}
+  header.topbar .actions{display:flex; gap:8px; flex-wrap:wrap;}
+  nav.subnav{background:var(--navy-dark); padding:0 24px; display:flex; gap:2px; flex-wrap:wrap;}
+  nav.subnav a{
+    color:rgba(255,255,255,0.75); text-decoration:none; font-size:13px;
+    padding:10px 14px; display:inline-block; border-bottom:2px solid transparent;
+  }
+  nav.subnav a.active{color:#fff; border-bottom-color:#fff; font-weight:600;}
+  nav.subnav a:hover{color:#fff;}
+
+  .btn{
+    border:none; border-radius:6px; padding:8px 16px; font-family:inherit;
+    font-size:13.5px; font-weight:600; cursor:pointer; transition:filter .15s ease;
+    white-space:nowrap; text-decoration:none; display:inline-block;
+  }
+  .btn:hover{filter:brightness(0.94);}
+  .btn:active{filter:brightness(0.88);}
+  .btn-green{background:var(--green); color:#fff;}
+  .btn-green:hover{background:var(--green-dark);}
+  .btn-teal{background:var(--teal); color:#fff;}
+  .btn-teal:hover{background:var(--teal-dark);}
+  .btn-red{background:var(--red); color:#fff;}
+  .btn-red:hover{background:var(--red-dark);}
+  .btn-ghost{background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.35);}
+  .btn-outline{background:#fff; color:var(--navy); border:1px solid var(--gray-border);}
+  .btn-outline:hover{background:#f0f3f6;}
+  .btn-sm{padding:5px 11px; font-size:12.5px;}
+
+  main{max-width:1180px; margin:0 auto; padding:20px 24px 80px;}
+
+  .card{background:var(--white); border:1px solid var(--gray-border); border-radius:10px; overflow:hidden; margin-bottom:20px;}
+  .card-head{
+    padding:14px 18px; border-bottom:1px solid var(--gray-border);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  .card-head h2{font-size:15px; margin:0; color:var(--navy); font-weight:600; display:flex; align-items:center; gap:8px;}
+  .card-head .hint{font-size:12px; color:var(--gray-text); font-weight:400;}
+  .card-body{padding:16px 18px;}
+
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
+  .search-wrap{position:relative; flex:1; min-width:220px;}
+  .search-wrap input{
+    width:100%; padding:9px 12px 9px 32px; border:1px solid var(--gray-border);
+    border-radius:8px; font-family:inherit; font-size:13.5px;
+  }
+  .search-wrap::before{content:"🔎"; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; opacity:.6;}
+
+  label{display:block; font-size:12px; color:var(--gray-text); margin-bottom:4px; font-weight:500;}
+  input[type=text], input[type=number]{
+    width:100%; padding:7px 9px; border:1px solid var(--gray-border);
+    border-radius:6px; font-family:inherit; font-size:13.5px; background:#fff; color:#1f2937;
+  }
+  input:focus{outline:2px solid var(--navy); outline-offset:0; border-color:var(--navy);}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.02em;
+    color:var(--gray-text); border-bottom:1px solid var(--gray-border);
+    padding:8px 8px; font-weight:600; white-space:nowrap;
+  }
+  tbody td{padding:7px 8px; border-bottom:1px solid #eef1f4; vertical-align:middle;}
+  tbody tr:hover{background:#fafbfc;}
+  tbody tr.editing-row{background:#eef4fb;}
+  .num{text-align:right;}
+  .num input{text-align:right;}
+  .table-wrap{overflow-x:auto;}
+  .row-actions{display:flex; gap:6px; white-space:nowrap;}
+  .row-del{background:none; border:none; color:var(--red); cursor:pointer; font-size:16px; line-height:1; padding:4px;}
+  .row-del:hover{color:var(--red-dark);}
+  .empty-state{padding:40px 20px; text-align:center; color:var(--gray-text); font-size:13.5px;}
+  .recipe-code{font-size:11.5px; color:var(--gray-text);}
+
+  .field-grid{display:grid; grid-template-columns:1.5fr 1fr; gap:12px 16px; margin-bottom:16px;}
+  @media(max-width:760px){ .field-grid{grid-template-columns:1fr;} }
+
+  .add-row-btn{
+    margin-top:8px; font-size:12.5px; color:var(--navy); background:none;
+    border:1px dashed var(--gray-border); border-radius:6px; padding:6px 12px; cursor:pointer;
+  }
+  .add-row-btn:hover{background:#f0f3f6;}
+  tfoot td{padding:8px 8px; font-weight:600; border-top:2px solid var(--gray-border); color:var(--navy); font-size:12.5px;}
+  .form-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:16px;}
+  .page-header-sticky{position:sticky; top:0; z-index:100;}
+  .step-count-badge{font-size:11px; color:var(--gray-text);}
+</style>
+</head>
+<body>
+
+<div class="page-header-sticky">
+<header class="topbar">
+  <h1>🛠️ คลังขั้นตอนการทำ (ค่าแรงที่ใช้ซ้ำได้)</h1>
+  <div class="actions">
+    <a class="btn btn-ghost btn-sm" href="dashboard.html" style="text-decoration:none; color:#fff;">← สรุปรายการต้นทุน</a>
+  </div>
+</header>
+<nav class="subnav">
+  <a href="dashboard.html">สรุปรายการต้นทุน</a>
+  <a href="cost-detail.html">รายละเอียดต้นทุน</a>
+  <a href="materials.html">คลังวัตถุดิบ/บรรจุภัณฑ์</a>
+  <a href="trade-terms.html">เงื่อนไขห้าง</a>
+  <a href="overhead-allocation.html">ปันส่วนโสหุ้ย</a>
+  <a href="recipes.html">คลังสูตร</a>
+  <a href="#" class="active">คลังขั้นตอนการทำ</a>
+</nav>
+</div>
+
+<main>
+
+  <!-- ตารางคลังขั้นตอนการทำ -->
+  <section class="card">
+    <div class="card-head">
+      <h2>รายการกลุ่มขั้นตอน <span class="hint" id="countTag">(0 รายการ)</span></h2>
+      <button class="btn btn-green btn-sm" id="newBtn">+ เพิ่มกลุ่มขั้นตอนใหม่</button>
+    </div>
+    <div class="card-body">
+      <div class="toolbar">
+        <div class="search-wrap"><input type="text" id="searchBox" placeholder="ค้นหาชื่อกลุ่ม หรือ รหัส..."></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:16%">รหัส</th>
+            <th>ชื่อกลุ่ม/แผนก</th>
+            <th class="num" style="width:14%">จำนวนขั้นตอน</th>
+            <th style="width:200px"></th>
+          </tr></thead>
+          <tbody id="groupBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none;">ยังไม่มีกลุ่มขั้นตอนในคลัง — กด "+ เพิ่มกลุ่มขั้นตอนใหม่" เพื่อเริ่มต้น</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ฟอร์มเพิ่ม/แก้ไขกลุ่มขั้นตอน -->
+  <section class="card" id="formCard">
+    <div class="card-head">
+      <h2 id="formTitle">📝 เพิ่มกลุ่มขั้นตอนใหม่</h2>
+      <span class="hint" id="editingHint"></span>
+    </div>
+    <div class="card-body">
+      <div class="field-grid">
+        <div><label>ชื่อกลุ่ม/แผนก</label><input type="text" id="f_name" placeholder="เช่น ทำตัวโดว์, ทำไส้"></div>
+        <div><label>รหัส (ถ้ามี)</label><input type="text" id="f_code" placeholder="เช่น STEP-DOUGH-01"></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>ขั้นตอน</th>
+            <th class="num" style="width:16%">เวลา (นาที)</th>
+            <th class="num" style="width:14%">จำนวนคน</th>
+            <th class="num" style="width:16%">ชิ้น/แบตช์</th>
+            <th style="width:26px"></th>
+          </tr></thead>
+          <tbody id="stepBody"></tbody>
+        </table>
+      </div>
+      <button class="add-row-btn" id="addStepBtn">+ เพิ่มขั้นตอน</button>
+
+      <div class="hint" style="margin-top:10px; display:block;">💡 ค่าแรง/นาที และค่าแรง/ชิ้นจะคำนวณจากอัตราค่าแรงของสินค้าแต่ละรายการในหน้า "รายละเอียดต้นทุน" เอง — คลังนี้เก็บเฉพาะเวลา/จำนวนคน/ชิ้นต่อแบตช์ เพื่อให้ดึงไปใช้กับสินค้าใดก็ได้ และเมื่อดึงไปใช้แล้ว การแก้ไขในหน้ารายละเอียดต้นทุนจะไม่กระทบคลังนี้ (และการแก้ไขคลังนี้ภายหลังก็จะไม่กระทบสินค้าที่เคยดึงไปแล้วเช่นกัน)</div>
+
+      <div class="form-actions">
+        <button class="btn btn-outline" id="cancelBtn">ยกเลิก</button>
+        <button class="btn btn-green" id="saveBtn">💾 บันทึกกลุ่มขั้นตอน</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script type="module">
+import {
+  collection, doc, getDocs, setDoc, addDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from "./firebase-config.js";
+
+const STEP_GROUPS_COL = "laborStepGroups";
+const $ = (id) => document.getElementById(id);
+const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
+let groups = [];
+let steps = [];   // form state: [{id, department, minutes, headcount, unitsPerBatch}]
+let stepSeq = 0;
+let editingId = null;
+let searchTerm = "";
+
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function escapeAttr(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+/* ---------------------------- load step groups ---------------------------- */
+async function loadGroups() {
+  if (!db) { renderTable(); return; }
+  try {
+    const snap = await getDocs(collection(db, STEP_GROUPS_COL));
+    groups = [];
+    snap.forEach(d => groups.push({ id: d.id, ...d.data() }));
+    groups.sort((a, b) => (a.code || a.name || "").localeCompare(b.code || b.name || "", "th"));
+  } catch (e) {
+    console.warn("โหลดคลังขั้นตอนการทำไม่สำเร็จ", e);
+  }
+  renderTable();
+}
+
+/* ---------------------------- table render ---------------------------- */
+function filteredGroups() {
+  if (!searchTerm) return groups;
+  const q = searchTerm.toLowerCase();
+  return groups.filter(g => ((g.name || "") + " " + (g.code || "")).toLowerCase().includes(q));
+}
+
+function renderTable() {
+  const body = $("groupBody");
+  body.innerHTML = "";
+  const list = filteredGroups();
+  $("countTag").textContent = `(${list.length} รายการ)`;
+  $("emptyState").style.display = list.length === 0 ? "block" : "none";
+
+  list.forEach(g => {
+    const tr = document.createElement("tr");
+    if (g.id === editingId) tr.classList.add("editing-row");
+    tr.innerHTML = `
+      <td><span class="recipe-code">${escapeHtml(g.code || "-")}</span></td>
+      <td>${escapeHtml(g.name || "(ไม่มีชื่อ)")}</td>
+      <td class="num"><span class="step-count-badge">${(g.steps || []).length} ขั้นตอน</span></td>
+      <td>
+        <div class="row-actions">
+          <button class="btn btn-outline btn-sm edit-btn">แก้ไข</button>
+          <button class="btn btn-teal btn-sm dup-btn">คัดลอก</button>
+          <button class="btn btn-red btn-sm del-btn">ลบ</button>
+        </div>
+      </td>
+    `;
+    tr.querySelector(".edit-btn").addEventListener("click", () => loadIntoForm(g));
+    tr.querySelector(".dup-btn").addEventListener("click", () => duplicateGroup(g));
+    tr.querySelector(".del-btn").addEventListener("click", () => deleteGroup(g));
+    body.appendChild(tr);
+  });
+}
+
+/* ---------------------------- step rows (form) ---------------------------- */
+function addStepRow(stepData) {
+  const s = stepData || { department: "", minutes: 0, headcount: 1, unitsPerBatch: 1 };
+  const id = "st" + (++stepSeq);
+  const row = { id, ...s };
+  steps.push(row);
+  renderStepRow(row);
+  return row;
+}
+
+function renderStepRow(row) {
+  const tr = document.createElement("tr");
+  tr.id = row.id;
+  tr.innerHTML = `
+    <td><input type="text" class="s-department" value="${escapeAttr(row.department)}" placeholder="เช่น ชั่งตวง, ผสม"></td>
+    <td><input type="number" step="0.01" class="s-minutes" value="${row.minutes || 0}"></td>
+    <td><input type="number" step="1" class="s-headcount" value="${row.headcount || 1}"></td>
+    <td><input type="number" step="1" class="s-unitsPerBatch" value="${row.unitsPerBatch || 1}"></td>
+    <td><button class="row-del s-del" title="ลบแถว">✕</button></td>
+  `;
+  $("stepBody").appendChild(tr);
+
+  const sync = () => {
+    row.department = tr.querySelector(".s-department").value;
+    row.minutes = num(tr.querySelector(".s-minutes").value);
+    row.headcount = num(tr.querySelector(".s-headcount").value);
+    row.unitsPerBatch = num(tr.querySelector(".s-unitsPerBatch").value);
+  };
+  tr.querySelectorAll("input").forEach(inp => inp.addEventListener("input", sync));
+  tr.querySelector(".s-del").addEventListener("click", () => {
+    steps = steps.filter(r => r.id !== row.id);
+    tr.remove();
+  });
+}
+
+$("addStepBtn").addEventListener("click", () => addStepRow());
+
+/* ---------------------------- form load / reset ---------------------------- */
+function resetForm() {
+  editingId = null;
+  $("formTitle").textContent = "📝 เพิ่มกลุ่มขั้นตอนใหม่";
+  $("editingHint").textContent = "";
+  $("f_name").value = "";
+  $("f_code").value = "";
+  steps = [];
+  $("stepBody").innerHTML = "";
+  addStepRow();
+  renderTable();
+}
+
+function loadIntoForm(g) {
+  editingId = g.id;
+  $("formTitle").textContent = "✏️ แก้ไขกลุ่มขั้นตอน";
+  $("editingHint").textContent = `กำลังแก้ไข: ${g.name || ""}`;
+  $("f_name").value = g.name || "";
+  $("f_code").value = g.code || "";
+
+  steps = [];
+  $("stepBody").innerHTML = "";
+  const items = g.steps || [];
+  if (items.length) {
+    items.forEach(s => addStepRow(s));
+  } else {
+    addStepRow();
+  }
+  renderTable();
+  $("formCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* ---------------------------- save / duplicate / delete ---------------------------- */
+function collectFormData() {
+  return {
+    name: $("f_name").value.trim(),
+    code: $("f_code").value.trim(),
+    steps: steps.map(s => ({ department: s.department, minutes: s.minutes, headcount: s.headcount, unitsPerBatch: s.unitsPerBatch }))
+  };
+}
+
+$("saveBtn").addEventListener("click", async () => {
+  const data = collectFormData();
+  if (!data.name) {
+    alert("กรุณากรอกชื่อกลุ่มขั้นตอนก่อนบันทึก");
+    return;
+  }
+  if (!db) {
+    alert("ยังไม่ได้ตั้งค่า Firebase (firebaseConfig) — กรุณาใส่ค่าคอนฟิกก่อนบันทึกจริง");
+    return;
+  }
+  const saveBtn = $("saveBtn");
+  const originalLabel = saveBtn.textContent;
+  saveBtn.textContent = "กำลังบันทึก...";
+  saveBtn.disabled = true;
+  try {
+    if (editingId) {
+      await setDoc(doc(db, STEP_GROUPS_COL, editingId), data, { merge: true });
+    } else {
+      await addDoc(collection(db, STEP_GROUPS_COL), data);
+    }
+    await loadGroups();
+    resetForm();
+    saveBtn.textContent = "บันทึกแล้ว ✓";
+    setTimeout(() => { saveBtn.textContent = originalLabel; saveBtn.disabled = false; }, 1000);
+  } catch (e) {
+    console.error(e);
+    alert("บันทึกไม่สำเร็จ: " + e.message);
+    saveBtn.textContent = originalLabel;
+    saveBtn.disabled = false;
+  }
+});
+
+$("cancelBtn").addEventListener("click", resetForm);
+$("newBtn").addEventListener("click", () => {
+  resetForm();
+  $("formCard").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+async function duplicateGroup(g) {
+  if (!db) {
+    alert("ยังไม่ได้ตั้งค่า Firebase (firebaseConfig) — กรุณาใส่ค่าคอนฟิกก่อนบันทึกจริง");
+    return;
+  }
+  const copy = {
+    name: (g.name || "") + " (คัดลอก)",
+    code: g.code ? g.code + "-COPY" : "",
+    steps: (g.steps || []).map(s => ({ ...s }))
+  };
+  try {
+    await addDoc(collection(db, STEP_GROUPS_COL), copy);
+    await loadGroups();
+  } catch (e) {
+    console.error(e);
+    alert("คัดลอกไม่สำเร็จ: " + e.message);
+  }
+}
+
+async function deleteGroup(g) {
+  if (!confirm(`ลบกลุ่มขั้นตอน "${g.name || "รายการนี้"}" ใช่หรือไม่? สินค้าที่เคยดึงกลุ่มนี้ไปใช้แล้วจะไม่ถูกกระทบ (ข้อมูลถูกคัดลอกไว้ในสินค้านั้นแล้ว)`)) return;
+  if (db) {
+    try {
+      await deleteDoc(doc(db, STEP_GROUPS_COL, g.id));
+    } catch (e) {
+      console.error(e);
+      alert("ลบไม่สำเร็จ: " + e.message);
+      return;
+    }
+  }
+  groups = groups.filter(x => x.id !== g.id);
+  if (editingId === g.id) resetForm();
+  else renderTable();
+}
+
+/* ---------------------------- search ---------------------------- */
+$("searchBox").addEventListener("input", (e) => {
+  searchTerm = e.target.value;
+  renderTable();
+});
+
+/* ---------------------------- init ---------------------------- */
+(async function init() {
+  addStepRow();
+  await loadGroups();
+})();
+</script>
+
+</body>
+</html>
