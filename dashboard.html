@@ -407,7 +407,8 @@ function buildDetailHtml(cost, npd) {
     ["วัตถุดิบ", npd.raw, cost.raw],
     ["บรรจุภัณฑ์", npd.pack, cost.pack],
     ["ค่าแรง", npd.labor, cost.labor],
-    ["โสหุ้ยการผลิต", npd.overhead, cost.overhead]
+    ["โสหุ้ยการผลิต", npd.oh, cost.overhead],
+    ["ค่าใช้จ่ายอื่น (NPD เท่านั้น)", npd.other || 0, 0]
   ];
   const bodyHtml = rows.map(([label, a, b]) => {
     const diff = b - a;
