@@ -223,6 +223,9 @@
   .summary-table tr.total td{font-weight:700; color:var(--navy); border-top:2px solid var(--navy); border-bottom:none; font-size:14.5px;}
   .summary-table tr.editable td:first-child{color:var(--gray-text);}
   .summary-table input{text-align:right; max-width:130px; margin-left:auto;}
+  .diff-up{color:var(--red); font-weight:600;}
+  .diff-down{color:var(--green); font-weight:600;}
+  .diff-flat{color:var(--gray-text); font-weight:600;}
   .pill{
     display:inline-block; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600;
   }
@@ -356,6 +359,7 @@
     <a class="btn btn-ghost btn-sm" href="dashboard.html" style="text-decoration:none; color:#fff;">← สรุปรายการต้นทุน</a>
     <button class="btn btn-outline btn-sm" id="exportExcelBtn">📊 Export Excel</button>
     <button class="btn btn-outline btn-sm" id="printBtn">🖨️ พิมพ์ / PDF</button>
+    <button class="btn btn-outline btn-sm" id="saveNpdBtn" title="บันทึกต้นทุนปัจจุบันไว้เป็นเกณฑ์ต้นทุน NPD (ครั้งแรกตอนพัฒนาสินค้า) เพื่อเทียบกับต้นทุนจริงในภายหลัง">📌 บันทึกต้นทุน NPD</button>
     <button class="btn btn-green" id="saveBtn">💾 บันทึก</button>
   </div>
 </header>
@@ -461,6 +465,29 @@
         </tbody>
       </table>
       <div class="status-msg" id="deliveryPenaltyTag" style="display:none;"></div>
+    </div>
+  </section>
+
+  <!-- เปรียบเทียบต้นทุน NPD กับต้นทุนจริง -->
+  <section class="card">
+    <div class="card-head">
+      <h2>📌 เทียบต้นทุน NPD กับต้นทุนจริง</h2>
+      <span class="hint" id="npdHint">ยังไม่ได้บันทึกเกณฑ์ต้นทุน NPD</span>
+    </div>
+    <div class="card-body table-wrap">
+      <table class="summary-table" id="npdCompareTable">
+        <thead><tr><th></th><th>ต้นทุน NPD</th><th>ต้นทุนจริง (ปัจจุบัน)</th><th>ผลต่าง</th><th>ผลต่าง %</th></tr></thead>
+        <tbody>
+          <tr><td>วัตถุดิบ</td><td id="npd_raw">-</td><td id="npd_raw_now">-</td><td id="npd_raw_diff">-</td><td id="npd_raw_diffpct">-</td></tr>
+          <tr><td>บรรจุภัณฑ์</td><td id="npd_pack">-</td><td id="npd_pack_now">-</td><td id="npd_pack_diff">-</td><td id="npd_pack_diffpct">-</td></tr>
+          <tr><td>ค่าแรง</td><td id="npd_labor">-</td><td id="npd_labor_now">-</td><td id="npd_labor_diff">-</td><td id="npd_labor_diffpct">-</td></tr>
+          <tr><td>โสหุ้ยการผลิต</td><td id="npd_oh">-</td><td id="npd_oh_now">-</td><td id="npd_oh_diff">-</td><td id="npd_oh_diffpct">-</td></tr>
+          <tr class="total"><td>รวมต้นทุนต่อชิ้น</td><td id="npd_total">-</td><td id="npd_total_now">-</td><td id="npd_total_diff">-</td><td id="npd_total_diffpct">-</td></tr>
+        </tbody>
+      </table>
+      <div class="status-msg" id="npdEmptyMsg" style="display:none; margin-top:8px; font-size:12.5px; color:var(--gray-text);">
+        ยังไม่มีข้อมูลต้นทุน NPD สำหรับสินค้านี้ — กด "📌 บันทึกต้นทุน NPD" ที่แถบด้านบน เพื่อล็อกต้นทุนปัจจุบันไว้เป็นเกณฑ์อ้างอิงตอนพัฒนาสินค้า (ทำครั้งเดียวตอนสูตรนิ่งแล้ว) จากนั้นเมื่อราคาวัตถุดิบ/ค่าแรง/โสหุ้ยเปลี่ยนไป หน้านี้จะโชว์ว่าต้นทุนจริงต่างจาก NPD ที่ส่วนไหนบ้าง
+      </div>
     </div>
   </section>
 
@@ -730,6 +757,7 @@ let currentDocId = new URLSearchParams(location.search).get("id") || null;
 let productionBatches = []; // ประวัติ Loss Analysis
 let lastStandardCostA = 0; // cache ต้นทุน/ชิ้น (รวมเช่า+ขนส่ง) ล่าสุดจาก calcSummary
 let lastComponentCosts = { raw: 0, pack: 0, labor: 0, oh: 0 };
+let npdCost = null; // เกณฑ์ต้นทุน NPD (snapshot ตอนพัฒนาสินค้า/สูตรนิ่งแล้ว) ใช้เทียบกับต้นทุนจริงปัจจุบัน
 let lossIncludeMap = { comp: {}, pack: {}, labor: {}, oh: { electric: true, water: true, allowance: true, rent: true, shipping: true } };
 const OH_KEYS = [
   { key: "electric", label: "ค่าไฟฟ้า" },
@@ -1332,6 +1360,7 @@ function calcSummary() {
   // cache สำหรับ Production Yield & Actual Cost (ใช้ totalA เป็น Standard Cost อ้างอิง)
   lastStandardCostA = totalA;
   lastComponentCosts = { raw, pack, labor, oh: oh.withRent };
+  renderNpdCompare();
 
   // sync รายการ checkbox ต้นทุนที่เกิดขึ้นแล้วก่อนจุดสูญเสีย ให้ตรงกับส่วนประกอบ/บรรจุภัณฑ์/แผนกล่าสุด
   if (typeof renderLossComponentCheckboxes === "function") renderLossComponentCheckboxes();
@@ -1426,6 +1455,50 @@ function renderMarkupPill(id, val) {
   if (val === null || val === undefined) { $(id).innerHTML = `<span class="pill">-</span>`; return; }
   const cls = val >= 0 ? "pill-good" : "pill-bad";
   $(id).innerHTML = `<span class="pill ${cls}">${fmt(val)}%</span>`;
+}
+
+/* ---------------------------- เทียบต้นทุน NPD กับต้นทุนจริง ---------------------------- */
+function fmtSigned(n) {
+  const r = Math.round(n * 100) / 100;
+  return (r > 0 ? "+" : "") + fmt(r);
+}
+function diffClass(n) {
+  if (Math.abs(n) < 0.005) return "diff-flat";
+  return n > 0 ? "diff-up" : "diff-down";
+}
+function renderNpdCompare() {
+  const now = { raw: lastComponentCosts.raw, pack: lastComponentCosts.pack, labor: lastComponentCosts.labor, oh: lastComponentCosts.oh, total: lastStandardCostA };
+  const keys = ["raw", "pack", "labor", "oh", "total"];
+  if (!npdCost) {
+    $("npdHint").textContent = "ยังไม่ได้บันทึกเกณฑ์ต้นทุน NPD";
+    $("npdEmptyMsg").style.display = "block";
+    keys.forEach(k => {
+      $(`npd_${k}`).textContent = "-";
+      $(`npd_${k}_now`).textContent = fmt(now[k]);
+      $(`npd_${k}_diff`).textContent = "-";
+      $(`npd_${k}_diff`).className = "";
+      $(`npd_${k}_diffpct`).textContent = "-";
+      $(`npd_${k}_diffpct`).className = "";
+    });
+    return;
+  }
+  $("npdEmptyMsg").style.display = "none";
+  const savedDate = npdCost.savedAt ? new Date(npdCost.savedAt).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" }) : "-";
+  $("npdHint").textContent = `บันทึกเมื่อ ${savedDate}`;
+  keys.forEach(k => {
+    const npdVal = npdCost[k] || 0;
+    const nowVal = now[k];
+    const diff = nowVal - npdVal;
+    const diffPct = npdVal > 0 ? (diff / npdVal) * 100 : (nowVal > 0 ? 100 : 0);
+    $(`npd_${k}`).textContent = fmt(npdVal);
+    $(`npd_${k}_now`).textContent = fmt(nowVal);
+    const diffEl = $(`npd_${k}_diff`);
+    diffEl.textContent = fmtSigned(diff);
+    diffEl.className = diffClass(diff);
+    const diffPctEl = $(`npd_${k}_diffpct`);
+    diffPctEl.textContent = fmtSigned(diffPct) + "%";
+    diffPctEl.className = diffClass(diff);
+  });
 }
 
 /* ---------------------------- Production Yield / Actual Cost ---------------------------- */
@@ -1813,6 +1886,7 @@ function collectData() {
     lossIncludeMap: lossIncludeMap,
     yieldMode: getYieldMode(),
     productionBatches: productionBatches,
+    npdCost: npdCost || null,
     updatedAt: serverTimestamp ? serverTimestamp() : new Date()
   };
 }
@@ -1904,6 +1978,22 @@ $("exportExcelBtn").addEventListener("click", () => {
   infoRows.push(["Loss Stage", $("f_lossStage").value]);
   infoRows.push(["Loss Reason", $("f_lossReason").value === "อื่น ๆ" ? $("f_lossReasonCustom").value : $("f_lossReason").value]);
   infoRows.push(["Remark", $("f_lossRemark").value]);
+
+  infoRows.push([]);
+  infoRows.push(["เทียบต้นทุน NPD กับต้นทุนจริง", "ต้นทุน NPD", "ต้นทุนจริง (ปัจจุบัน)", "ผลต่าง"]);
+  if (npdCost) {
+    const rows4 = [
+      ["วัตถุดิบ", npdCost.raw, s.raw],
+      ["บรรจุภัณฑ์", npdCost.pack, s.pack],
+      ["ค่าแรง", npdCost.labor, s.labor],
+      ["โสหุ้ยการผลิต", npdCost.oh, s.overheadWithRent],
+      ["รวมต้นทุนต่อชิ้น", npdCost.total, s.totalA]
+    ];
+    rows4.forEach(([label, a, b]) => infoRows.push([label, round2(a), round2(b), round2(b - a)]));
+    infoRows.push(["บันทึกเกณฑ์ NPD เมื่อ", npdCost.savedAt ? new Date(npdCost.savedAt).toLocaleDateString("th-TH") : ""]);
+  } else {
+    infoRows.push(["ยังไม่ได้บันทึกเกณฑ์ต้นทุน NPD สำหรับสินค้านี้", "", "", ""]);
+  }
 
   const ws1 = XLSX.utils.aoa_to_sheet(infoRows);
   ws1["!cols"] = [{ wch: 30 }, { wch: 16 }, { wch: 16 }];
@@ -1999,6 +2089,40 @@ $("exportExcelBtn").addEventListener("click", () => {
   XLSX.writeFile(wb, fileName);
 });
 
+$("saveNpdBtn").addEventListener("click", async () => {
+  if (!currentDocId) {
+    alert("กรุณาบันทึกสินค้านี้ก่อน (กด 💾 บันทึก) แล้วค่อยกลับมาบันทึกต้นทุน NPD");
+    return;
+  }
+  if (npdCost && !confirm("มีเกณฑ์ต้นทุน NPD บันทึกไว้อยู่แล้ว การบันทึกใหม่จะเขียนทับค่าเดิม ต้องการดำเนินการต่อหรือไม่?")) {
+    return;
+  }
+  const s = calcSummary();
+  npdCost = {
+    raw: round2(s.raw),
+    pack: round2(s.pack),
+    labor: round2(s.labor),
+    oh: round2(s.overheadWithRent),
+    total: round2(s.totalA),
+    savedAt: new Date().toISOString()
+  };
+  renderNpdCompare();
+  if (!db) {
+    alert("ยังไม่ได้ตั้งค่า Firebase (firebaseConfig) — บันทึกไว้ในหน้านี้ชั่วคราวเท่านั้น กด 💾 บันทึก เพื่อบันทึกจริง");
+    return;
+  }
+  const btn = $("saveNpdBtn");
+  const original = btn.textContent;
+  try {
+    await setDoc(doc(db, PRODUCTS_COL, currentDocId), { npdCost }, { merge: true });
+    btn.textContent = "📌 บันทึกแล้ว ✓";
+    setTimeout(() => { btn.textContent = original; }, 1400);
+  } catch (e) {
+    console.error(e);
+    alert("บันทึกต้นทุน NPD ไม่สำเร็จ: " + e.message);
+  }
+});
+
 $("saveBtn").addEventListener("click", async () => {
   if (!db) {
     alert("ยังไม่ได้ตั้งค่า Firebase (firebaseConfig) — กรุณาใส่ค่าคอนฟิกก่อนบันทึกจริง");
@@ -2028,6 +2152,7 @@ async function loadExisting() {
   const snap = await getDoc(doc(db, PRODUCTS_COL, currentDocId));
   if (!snap.exists()) return;
   const d = snap.data();
+  npdCost = d.npdCost || null;
   $("f_name").value = d.name || "";
   $("f_code").value = d.code || "";
   $("f_customer").value = d.customer || "";

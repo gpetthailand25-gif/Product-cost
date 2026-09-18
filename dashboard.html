@@ -130,6 +130,18 @@
   .empty-state{padding:50px 20px; text-align:center; color:var(--gray-text); font-size:13.5px;}
   .muted{color:var(--gray-text);}
   .page-header-sticky{position:sticky; top:0; z-index:100;}
+
+  .diff-up{color:var(--red-dark); font-weight:600;}
+  .diff-down{color:var(--green-dark); font-weight:600;}
+  .diff-flat{color:var(--gray-text); font-weight:600;}
+  .diff-toggle{border:none; cursor:pointer; font-family:inherit;}
+  .detail-row td{background:#fafbfc; padding:10px 16px 14px;}
+  .detail-table{width:100%; border-collapse:collapse; font-size:12px; max-width:520px;}
+  .detail-table th{text-align:right; font-size:10.5px; color:var(--gray-text); padding:4px 8px; border-bottom:1px solid var(--gray-border);}
+  .detail-table th:first-child{text-align:left;}
+  .detail-table td{padding:4px 8px; border-bottom:1px solid #eef1f4;}
+  .detail-table tr:last-child td{border-bottom:none; border-top:1px solid var(--gray-border);}
+  .detail-note{font-size:11.5px; color:var(--gray-text); margin-bottom:6px;}
 </style>
 </head>
 <body>
@@ -165,6 +177,7 @@
   <section class="card">
     <div class="card-head">
       <h2>รายการสินค้า <span class="muted" id="countTag" style="font-weight:400; font-size:12px;">(0 รายการ)</span></h2>
+      <span class="muted" style="font-size:12px;">หน้านี้คือต้นทุนจริงของบัญชี (คำนวณจากราคาวัตถุดิบ/ค่าแรง/โสหุ้ยล่าสุด) ไม่ใช่หน้าสำหรับเสนอราคาขาย — เทียบกับต้นทุน NPD เพื่อดูว่าต่างกันตรงไหน</span>
     </div>
     <div class="card-body">
       <div class="toolbar">
@@ -181,15 +194,17 @@
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th style="width:19%">สินค้า</th>
-            <th style="width:13%">ช่องทาง/ห้าง</th>
-            <th class="num" style="width:9%">รวมหัก %</th>
-            <th class="num" style="width:10%">ต้นทุน/หน่วย</th>
-            <th class="num" style="width:10%">ราคาขาย</th>
-            <th class="num" style="width:8%">มาร์จิ้น %</th>
-            <th class="num" style="width:11%">แนะนำ margin 50%</th>
-            <th style="width:12%">สถานะ</th>
-            <th style="width:130px"></th>
+            <th style="width:15%">สินค้า</th>
+            <th style="width:10%">ช่องทาง/ห้าง</th>
+            <th class="num" style="width:7%">รวมหัก %</th>
+            <th class="num" style="width:8%">ต้นทุน NPD</th>
+            <th class="num" style="width:8%">ต้นทุนจริง</th>
+            <th class="num" style="width:11%">ผลต่าง (จริง−NPD)</th>
+            <th class="num" style="width:8%">ราคาขาย</th>
+            <th class="num" style="width:7%">มาร์จิ้น %</th>
+            <th class="num" style="width:10%">แนะนำ margin 50%</th>
+            <th style="width:10%">สถานะ</th>
+            <th style="width:110px"></th>
           </tr></thead>
           <tbody id="prodBody"></tbody>
         </table>
@@ -368,8 +383,53 @@ function updateStats() {
   $("statEmpty").textContent = empty;
 }
 
+function fmtSigned(n) {
+  const r = Math.round(n * 100) / 100;
+  return (r > 0 ? "+" : "") + fmt(r);
+}
+function diffClass(n) {
+  if (Math.abs(n) < 0.005) return "diff-flat";
+  return n > 0 ? "diff-up" : "diff-down";
+}
+
+function buildNpdDiffCell(cost, npd) {
+  if (!cost.hasRecipe) return `<span class="muted">-</span>`;
+  if (!npd) return `<span class="muted" title="ยังไม่ได้บันทึกต้นทุน NPD ที่หน้ารายละเอียดต้นทุน">— ยังไม่มี NPD —</span>`;
+  const diff = cost.total - npd.total;
+  const diffPct = npd.total > 0 ? (diff / npd.total) * 100 : (cost.total > 0 ? 100 : 0);
+  const cls = Math.abs(diff) < 0.005 ? "pill-gray" : (diff > 0 ? "pill-red" : "pill-green");
+  const arrow = diff > 0 ? "▲" : (diff < 0 ? "▼" : "—");
+  return `<button type="button" class="diff-toggle pill ${cls}" title="คลิกดูรายละเอียดว่าต่างที่ส่วนไหน">${arrow} ${fmtSigned(diff)} (${fmtSigned(diffPct)}%)</button>`;
+}
+
+function buildDetailHtml(cost, npd) {
+  const rows = [
+    ["วัตถุดิบ", npd.raw, cost.raw],
+    ["บรรจุภัณฑ์", npd.pack, cost.pack],
+    ["ค่าแรง", npd.labor, cost.labor],
+    ["โสหุ้ยการผลิต", npd.overhead, cost.overhead]
+  ];
+  const bodyHtml = rows.map(([label, a, b]) => {
+    const diff = b - a;
+    return `<tr><td>${label}</td><td class="num">${fmt(a)}</td><td class="num">${fmt(b)}</td><td class="num ${diffClass(diff)}">${fmtSigned(diff)}</td></tr>`;
+  }).join("");
+  const totalDiff = cost.total - npd.total;
+  const savedDate = npd.savedAt ? new Date(npd.savedAt).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" }) : "-";
+  return `
+    <div class="detail-note">ต้นทุน NPD บันทึกเมื่อ ${savedDate} — เทียบทีละหมวดกับต้นทุนจริงปัจจุบัน</div>
+    <table class="detail-table">
+      <thead><tr><th style="text-align:left;">หมวด</th><th>NPD</th><th>จริง</th><th>ผลต่าง</th></tr></thead>
+      <tbody>
+        ${bodyHtml}
+        <tr style="font-weight:700;"><td>รวม</td><td class="num">${fmt(npd.total)}</td><td class="num">${fmt(cost.total)}</td><td class="num ${diffClass(totalDiff)}">${fmtSigned(totalDiff)}</td></tr>
+      </tbody>
+    </table>
+  `;
+}
+
 function buildRow(d) {
   const cost = computeCost(d);
+  const npd = d.npdCost || null;
   const st = statusOf(d, cost);
   const tr = document.createElement("tr");
   tr.dataset.id = d.id;
@@ -394,7 +454,9 @@ function buildRow(d) {
       <a href="cost-detail.html?id=${d.id}" style="text-decoration:none; color:inherit;" title="แก้ไขเงื่อนไขห้างที่หน้ารายละเอียดต้นทุน">${channelCell}</a>
     </td>
     <td class="num">${deductCell}</td>
+    <td class="num">${cost.hasRecipe && npd ? fmt(npd.total) : '<span class="muted">-</span>'}</td>
     <td class="num">${cost.hasRecipe ? fmt(cost.total) : "-"}</td>
+    <td class="num">${buildNpdDiffCell(cost, npd)}</td>
     <td class="num"><input type="number" step="0.01" class="f-price" value="${d.sellingPrice ?? ""}" placeholder="0"></td>
     <td class="num"><span class="pill ${marginPillClass}">${marginText}</span></td>
     <td class="num">${cost.hasRecipe ? fmt(cost.suggested) : "-"}</td>
@@ -413,7 +475,24 @@ function buildRow(d) {
   tr.querySelector(".save-btn").addEventListener("click", () => saveRow(d, tr));
   tr.querySelector(".del-btn").addEventListener("click", () => deleteRow(d, tr));
 
-  return tr;
+  const frag = document.createDocumentFragment();
+  frag.appendChild(tr);
+
+  if (npd && cost.hasRecipe) {
+    const detailTr = document.createElement("tr");
+    detailTr.className = "detail-row";
+    detailTr.style.display = "none";
+    const detailTd = document.createElement("td");
+    detailTd.colSpan = 11;
+    detailTd.innerHTML = buildDetailHtml(cost, npd);
+    detailTr.appendChild(detailTd);
+    frag.appendChild(detailTr);
+    tr.querySelector(".diff-toggle").addEventListener("click", () => {
+      detailTr.style.display = detailTr.style.display === "none" ? "" : "none";
+    });
+  }
+
+  return frag;
 }
 
 function escapeHtml(s) {
