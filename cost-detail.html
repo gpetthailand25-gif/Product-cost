@@ -408,6 +408,28 @@
     </div>
   </section>
 
+  <!-- ค่าใช้จ่ายอื่น (ถ้ามี) -->
+  <section class="card">
+    <div class="card-head">
+      <h2>📋 ค่าใช้จ่ายอื่น (ถ้ามี)</h2>
+      <span class="hint">เช่น ค่าเทสตัวอย่าง ค่าตรวจแล็บ ค่าอุปกรณ์ที่ต้องซื้อเพื่อทำโปรดักส์นี้ — เป็นค่าใช้จ่ายครั้งเดียวช่วงพัฒนาสินค้า ไม่รวมในต้นทุนต่อหน่วยขายด้านล่าง</span>
+    </div>
+    <div class="card-body">
+      <div class="table-wrap">
+        <table id="otherExpTable">
+          <thead><tr>
+            <th>รายการ</th>
+            <th class="num" style="width:18%">จำนวนเงิน (บาท)</th>
+            <th style="width:30px"></th>
+          </tr></thead>
+          <tbody id="otherExpBody"></tbody>
+          <tfoot><tr><td>รวมค่าใช้จ่ายอื่น</td><td class="num" id="otherExpTotal">0.00</td><td></td></tr></tfoot>
+        </table>
+      </div>
+      <button class="add-row-btn" id="addOtherExpBtn">+ เพิ่มรายการค่าใช้จ่ายอื่น</button>
+    </div>
+  </section>
+
   <!-- สรุปต้นทุน -->
   <section class="card">
     <div class="card-head"><h2>📊 สรุปต้นทุนต่อหน่วยขาย</h2><span class="hint">เปรียบเทียบ Standard กับ Actual Cost (ตามผลผลิตจริง) — คูณด้วยจำนวนชิ้น/หน่วยขาย (<span id="qtyPerUnitTagMain">1</span>) แล้ว</span></div>
@@ -762,6 +784,7 @@ const round2 = (n) => Math.round(n * 100) / 100;
 let components = [];
 let packRows = [];
 let laborGroups = [];
+let otherExpenses = []; // ค่าใช้จ่ายอื่น (ถ้ามี) — one-time cost เช่น ค่าเทสตัวอย่าง/ค่าตรวจแล็บ/ค่าอุปกรณ์
 let rowSeq = 0;
 let compSeq = 0;
 let groupSeq = 0;
@@ -1110,6 +1133,41 @@ function renderIngredientRow(comp, div, ing) {
     tr.remove();
     calcComponents(); calcSummary();
   });
+}
+
+/* ---------------------------- ค่าใช้จ่ายอื่น (ถ้ามี) ---------------------------- */
+function makeOtherExpenseRow(prefill) {
+  const id = "oe" + (++rowSeq);
+  const row = { id, name: (prefill && prefill.name) || "", amount: (prefill ? num(prefill.amount) : 0) };
+  otherExpenses.push(row);
+  renderOtherExpenseRow(row);
+  return row;
+}
+function renderOtherExpenseRow(row) {
+  const tr = document.createElement("tr");
+  tr.id = row.id;
+  tr.innerHTML = `
+    <td><input type="text" class="oe-name" value="${escapeAttr(row.name)}" placeholder="เช่น ค่าเทสตัวอย่าง, ค่าตรวจแล็บ, ค่าอุปกรณ์"></td>
+    <td><input type="number" step="0.01" class="oe-amount" value="${row.amount}"></td>
+    <td><button class="row-del" title="ลบแถว">✕</button></td>
+  `;
+  $("otherExpBody").appendChild(tr);
+  tr.querySelector(".oe-name").addEventListener("input", () => { row.name = tr.querySelector(".oe-name").value; });
+  tr.querySelector(".oe-amount").addEventListener("input", () => {
+    row.amount = num(tr.querySelector(".oe-amount").value);
+    calcOtherExpenses();
+  });
+  tr.querySelector(".row-del").addEventListener("click", () => {
+    const idx = otherExpenses.indexOf(row);
+    if (idx > -1) otherExpenses.splice(idx, 1);
+    tr.remove();
+    calcOtherExpenses();
+  });
+}
+function calcOtherExpenses() {
+  const total = otherExpenses.reduce((s, r) => s + num(r.amount), 0);
+  $("otherExpTotal").textContent = fmt(total);
+  return total;
 }
 
 function makePackRow() {
@@ -1862,6 +1920,7 @@ $("clearBatchBtn").addEventListener("click", () => {
 /* ---------------------------- buttons ---------------------------- */
 $("addComponentBtn").addEventListener("click", () => { makeComponent(); calcSummary(); });
 $("addPackBtn").addEventListener("click", () => { makePackRow(); calcSummary(); });
+$("addOtherExpBtn").addEventListener("click", () => { makeOtherExpenseRow(); calcOtherExpenses(); });
 $("addLaborGroupBtn").addEventListener("click", () => { makeLaborGroup(); calcSummary(); });
 
 ["laborRate", "oh_electric", "oh_water", "oh_allowance", "oh_rent", "oh_shipping", "f_sellprice", "f_promoValue",
@@ -1904,6 +1963,7 @@ function collectData() {
       ingredients: c.ingredients.map(i => ({ code: i.code, name: i.name, price: i.price, weightG: i.weightG, amountG: i.amountG }))
     })),
     packaging: packRows.map(r => ({ code: r.code, name: r.name, price: r.price, packQty: r.packQty, amountUsed: r.amountUsed })),
+    otherExpenses: otherExpenses.map(r => ({ name: r.name, amount: num(r.amount) })),
     laborGroups: laborGroups.map(g => ({
       name: g.name,
       templateId: g.templateId || "",
@@ -1983,6 +2043,11 @@ $("exportExcelBtn").addEventListener("click", () => {
     ["การบรรจุ (ชิ้น/หีบ)", num($("f_pack").value)],
     ["ผู้รับผิดชอบ", $("f_owner").value],
     ["เวอร์ชันสูตร", $("f_version").value],
+    [],
+    ["ค่าใช้จ่ายอื่น (ถ้ามี) — one-time cost ไม่รวมในต้นทุนต่อหน่วยขาย", "จำนวนเงิน (บาท)"],
+    ...(otherExpenses.length
+      ? [...otherExpenses.map(r => [r.name || "(ไม่มีชื่อรายการ)", round2(num(r.amount))]), ["รวมค่าใช้จ่ายอื่น", round2(calcOtherExpenses())]]
+      : [["ไม่มีรายการค่าใช้จ่ายอื่น", ""]]),
     [],
     ["สรุปต้นทุนต่อชิ้น", "Standard", "Actual"],
     ["วัตถุดิบ", s.raw, s.actualComponents ? round2(s.actualComponents.raw) : ""],
@@ -2234,6 +2299,8 @@ async function loadExisting() {
     tr.querySelector(".packQty").value = row.packQty;
     tr.querySelector(".amountUsed").value = row.amountUsed;
   });
+  (d.otherExpenses || []).forEach(item => makeOtherExpenseRow(item));
+  calcOtherExpenses();
   const groupsData = d.laborGroups && d.laborGroups.length
     ? d.laborGroups
     : (d.laborSteps && d.laborSteps.length ? [{ name: "ทั่วไป", steps: d.laborSteps }] : []);
