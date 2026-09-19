@@ -443,7 +443,7 @@
           <tr><td>โสหุ้ยการผลิต</td><td id="s_oh_a">0.00</td><td id="s_oh_b">0.00</td></tr>
           <tr class="total"><td>รวมต้นทุนต่อหน่วยขาย</td><td id="s_total_a">0.00</td><td id="s_total_b">0.00</td></tr>
           <tr class="editable">
-            <td>ราคาขายต่อชิ้น</td>
+            <td>ราคาขาย (ต่อหน่วยขาย)</td>
             <td colspan="2" style="text-align:right;">
               <input type="number" step="0.01" id="f_sellprice" value="0">
             </td>
@@ -1553,8 +1553,11 @@ function calcSummary() {
     $("row_netprice").style.display = "none";
   }
 
-  const profitA = netPrice - totalA;
-  const profitB = hasActualCost ? (netPrice - y.actualCost) : null;
+  // กำไร/มาร์จิ้น เทียบกับ "ต้นทุนรวมต่อหน่วยขาย" (คูณจำนวนชิ้น/หน่วยขายแล้ว) เพราะราคาขายคือราคาของทั้งหน่วยขาย ไม่ใช่ราคาต่อชิ้นเดี่ยว
+  const totalUnitA = totalA * qtyPerUnit;
+  const totalUnitB = hasActualCost ? y.actualCost * qtyPerUnit : null;
+  const profitA = netPrice - totalUnitA;
+  const profitB = totalUnitB !== null ? (netPrice - totalUnitB) : null;
   $("s_profit_a").textContent = fmt(profitA);
   $("s_profit_b").textContent = profitB !== null ? fmt(profitB) : "-";
 
@@ -2097,7 +2100,7 @@ $("exportExcelBtn").addEventListener("click", () => {
     ["โสหุ้ยการผลิต", s.overheadWithRent, s.actualComponents ? round2(s.actualComponents.oh) : ""],
     ["รวมต้นทุนต่อชิ้น", s.totalA, s.actualCost !== null ? round2(s.actualCost) : ""],
     ["ต้นทุนรวมต่อหน่วยขาย", round2(s.totalA * (num($("f_qtyPerUnit").value) || 1)), s.actualCost !== null ? round2(s.actualCost * (num($("f_qtyPerUnit").value) || 1)) : ""],
-    ["ราคาขายต่อชิ้น", s.sellPrice, s.sellPrice]
+    ["ราคาขาย (ต่อหน่วยขาย)", s.sellPrice, s.sellPrice]
   ];
   if (s.term) {
     const packPerBox = num($("f_pack").value);
