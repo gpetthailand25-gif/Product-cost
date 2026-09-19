@@ -169,8 +169,8 @@
 
   <div class="stat-row">
     <div class="stat-card"><div class="label">สินค้าทั้งหมด</div><div class="value" id="statTotal">0</div></div>
-    <div class="stat-card"><div class="label">พร้อมยื่นราคา</div><div class="value" id="statReady">0</div></div>
-    <div class="stat-card"><div class="label">รอปรับสูตร</div><div class="value" id="statFix">0</div></div>
+    <div class="stat-card"><div class="label">ขายอยู่</div><div class="value" id="statActive">0</div></div>
+    <div class="stat-card"><div class="label">ยกเลิกขาย</div><div class="value" id="statDiscontinued">0</div></div>
     <div class="stat-card"><div class="label">ยังไม่มีสูตร</div><div class="value" id="statEmpty">0</div></div>
   </div>
 
@@ -184,26 +184,23 @@
         <div class="search-wrap"><input type="text" id="searchBox" placeholder="ค้นหาสินค้า, รหัส, ช่องทาง..."></div>
         <div class="tabs" id="statusTabs">
           <button class="tab active" data-status="all">ทั้งหมด</button>
-          <button class="tab" data-status="empty">ไม่มีสูตร</button>
-          <button class="tab" data-status="noprice">รอตั้งราคาขาย</button>
-          <button class="tab" data-status="fix">รอปรับสูตร</button>
-          <button class="tab" data-status="ready">พร้อมยื่นราคา</button>
+          <button class="tab" data-status="active">ขายอยู่</button>
+          <button class="tab" data-status="discontinued">ยกเลิกขาย</button>
         </div>
       </div>
 
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th style="width:15%">สินค้า</th>
-            <th style="width:10%">ช่องทาง/ห้าง</th>
+            <th style="width:16%">สินค้า</th>
+            <th style="width:11%">ช่องทาง/ห้าง</th>
             <th class="num" style="width:7%">รวมหัก %</th>
-            <th class="num" style="width:8%">ต้นทุน NPD</th>
-            <th class="num" style="width:8%" title="Actual Cost ตามผลผลิตจริง (Yield/Loss) — ถ้ายังไม่มีข้อมูล Production จะใช้ต้นทุนตามสูตรแทนชั่วคราว">ต้นทุนจริง</th>
-            <th class="num" style="width:11%">ผลต่าง (จริง−NPD)</th>
-            <th class="num" style="width:8%">ราคาขาย</th>
-            <th class="num" style="width:7%">มาร์จิ้น %</th>
-            <th class="num" style="width:10%">แนะนำ margin 50%</th>
-            <th style="width:10%">สถานะ</th>
+            <th class="num" style="width:9%">ต้นทุน NPD</th>
+            <th class="num" style="width:9%" title="Actual Cost ตามผลผลิตจริง (Yield/Loss) — ถ้ายังไม่มีข้อมูล Production จะใช้ต้นทุนตามสูตรแทนชั่วคราว คูณด้วยจำนวนชิ้น/หน่วยขายแล้ว">ต้นทุนจริง</th>
+            <th class="num" style="width:12%">ผลต่าง (จริง−NPD)</th>
+            <th class="num" style="width:9%">ราคาขาย</th>
+            <th class="num" style="width:8%">มาร์จิ้น %</th>
+            <th style="width:11%">สถานะ</th>
             <th style="width:110px"></th>
           </tr></thead>
           <tbody id="prodBody"></tbody>
@@ -359,30 +356,27 @@ function computeCost(d) {
   const standardTotal = itemized.raw + itemized.pack + itemized.labor + itemized.overhead;
   const actual = computeActualCost(d, itemized);
   const isActual = !!actual;
-  const raw = isActual ? actual.raw : itemized.raw;
-  const pack = isActual ? actual.pack : itemized.pack;
-  const labor = isActual ? actual.labor : itemized.labor;
-  const overhead = isActual ? actual.overhead : itemized.overhead;
-  const total = isActual ? actual.total : standardTotal;
+  const qtyPerUnit = num(d.qtyPerUnit) || 1;
+  const raw = (isActual ? actual.raw : itemized.raw) * qtyPerUnit;
+  const pack = (isActual ? actual.pack : itemized.pack) * qtyPerUnit;
+  const labor = (isActual ? actual.labor : itemized.labor) * qtyPerUnit;
+  const overhead = (isActual ? actual.overhead : itemized.overhead) * qtyPerUnit;
+  const total = (isActual ? actual.total : standardTotal) * qtyPerUnit;
   const hasRecipe = (d.components || []).some(c => (c.ingredients || []).length > 0) || (d.packaging || []).length > 0;
   const sellingPrice = num(d.sellingPrice);
   const netPrice = computeNetPrice(d, sellingPrice);
   const margin = sellingPrice > 0 ? (netPrice > 0 ? ((netPrice - total) / netPrice) * 100 : 0) : null;
-  const suggested = total * 2; // ราคาขายแนะนำที่ Gross Margin 50% (price = cost / (1 - 0.5))
-  return { raw, pack, labor, overhead, total, standardTotal, isActual, hasRecipe, margin, suggested, netPrice };
+  return { raw, pack, labor, overhead, total, standardTotal: standardTotal * qtyPerUnit, isActual, hasRecipe, margin, netPrice, qtyPerUnit };
 }
 
-function statusOf(d, cost) {
-  if (!cost.hasRecipe) return "empty";
-  if (!num(d.sellingPrice)) return "noprice";
-  if (cost.margin !== null && cost.margin < 0) return "fix";
-  return "ready";
+function statusOf(d) {
+  return d.saleStatus === "discontinued" ? "discontinued" : "active";
 }
 function statusLabel(s) {
-  return { empty: "ไม่มีสูตร", noprice: "รอตั้งราคาขาย", fix: "รอปรับสูตร", ready: "พร้อมยื่นราคา" }[s] || s;
+  return { active: "ขายอยู่", discontinued: "ยกเลิกขาย" }[s] || s;
 }
 function statusPillClass(s) {
-  return { empty: "pill-gray", noprice: "pill-amber", fix: "pill-red", ready: "pill-green" }[s] || "pill-gray";
+  return { active: "pill-green", discontinued: "pill-gray" }[s] || "pill-gray";
 }
 
 /* ---------------------------- load ---------------------------- */
@@ -402,8 +396,7 @@ async function loadProducts() {
 /* ---------------------------- render ---------------------------- */
 function filteredProducts() {
   return products.filter(d => {
-    const cost = computeCost(d);
-    const st = statusOf(d, cost);
+    const st = statusOf(d);
     if (activeStatus !== "all" && st !== activeStatus) return false;
     if (searchTerm) {
       const term = findTerm(d.tradeTermId);
@@ -426,17 +419,15 @@ function renderTable() {
 }
 
 function updateStats() {
-  let ready = 0, fix = 0, empty = 0;
+  let active = 0, discontinued = 0, empty = 0;
   products.forEach(d => {
-    const cost = computeCost(d);
-    const st = statusOf(d, cost);
-    if (st === "ready") ready++;
-    else if (st === "fix") fix++;
-    else if (st === "empty") empty++;
+    const st = statusOf(d);
+    if (st === "discontinued") discontinued++; else active++;
+    if (!computeCost(d).hasRecipe) empty++;
   });
   $("statTotal").textContent = products.length;
-  $("statReady").textContent = ready;
-  $("statFix").textContent = fix;
+  $("statActive").textContent = active;
+  $("statDiscontinued").textContent = discontinued;
   $("statEmpty").textContent = empty;
 }
 
@@ -493,8 +484,18 @@ function buildDetailHtml(cost, npd) {
 
 function buildRow(d) {
   const cost = computeCost(d);
-  const npd = d.npdCost || null;
-  const st = statusOf(d, cost);
+  const qty = cost.qtyPerUnit || 1;
+  const npdRaw = d.npdCost || null;
+  const npd = npdRaw ? {
+    raw: (npdRaw.raw || 0) * qty,
+    pack: (npdRaw.pack || 0) * qty,
+    labor: (npdRaw.labor || 0) * qty,
+    oh: (npdRaw.oh || 0) * qty,
+    other: (npdRaw.other || 0) * qty,
+    total: (npdRaw.total || 0) * qty,
+    savedAt: npdRaw.savedAt
+  } : null;
+  const st = statusOf(d);
   const tr = document.createElement("tr");
   tr.dataset.id = d.id;
 
@@ -523,8 +524,12 @@ function buildRow(d) {
     <td class="num">${buildNpdDiffCell(cost, npd)}</td>
     <td class="num"><input type="number" step="0.01" class="f-price" value="${d.sellingPrice ?? ""}" placeholder="0"></td>
     <td class="num"><span class="pill ${marginPillClass}">${marginText}</span></td>
-    <td class="num">${cost.hasRecipe ? fmt(cost.suggested) : "-"}</td>
-    <td><span class="pill ${statusPillClass(st)}">${statusLabel(st)}</span></td>
+    <td>
+      <select class="f-status">
+        <option value="active" ${st === "active" ? "selected" : ""}>ขายอยู่</option>
+        <option value="discontinued" ${st === "discontinued" ? "selected" : ""}>ยกเลิกขาย</option>
+      </select>
+    </td>
     <td>
       <div class="row-actions">
         <button class="btn btn-green btn-sm save-btn">บันทึก</button>
@@ -533,8 +538,9 @@ function buildRow(d) {
     </td>
   `;
 
-  tr.querySelectorAll("input").forEach(inp => {
+  tr.querySelectorAll("input, select").forEach(inp => {
     inp.addEventListener("input", () => tr.classList.add("dirty"));
+    inp.addEventListener("change", () => tr.classList.add("dirty"));
   });
   tr.querySelector(".save-btn").addEventListener("click", () => saveRow(d, tr));
   tr.querySelector(".del-btn").addEventListener("click", () => deleteRow(d, tr));
@@ -547,7 +553,7 @@ function buildRow(d) {
     detailTr.className = "detail-row";
     detailTr.style.display = "none";
     const detailTd = document.createElement("td");
-    detailTd.colSpan = 11;
+    detailTd.colSpan = 10;
     detailTd.innerHTML = buildDetailHtml(cost, npd);
     detailTr.appendChild(detailTd);
     frag.appendChild(detailTr);
@@ -573,7 +579,8 @@ async function saveRow(d, tr) {
     return;
   }
   const data = {
-    sellingPrice: num(tr.querySelector(".f-price").value)
+    sellingPrice: num(tr.querySelector(".f-price").value),
+    saleStatus: tr.querySelector(".f-status").value
   };
   const saveBtn = tr.querySelector(".save-btn");
   const originalLabel = saveBtn.textContent;

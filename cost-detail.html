@@ -410,7 +410,7 @@
 
   <!-- สรุปต้นทุน -->
   <section class="card">
-    <div class="card-head"><h2>📊 สรุปต้นทุนต่อชิ้น</h2><span class="hint">เปรียบเทียบต้นทุน Standard กับ Actual Cost (ตามผลผลิตจริง)</span></div>
+    <div class="card-head"><h2>📊 สรุปต้นทุนต่อหน่วยขาย</h2><span class="hint">เปรียบเทียบ Standard กับ Actual Cost (ตามผลผลิตจริง) — คูณด้วยจำนวนชิ้น/หน่วยขาย (<span id="qtyPerUnitTagMain">1</span>) แล้ว</span></div>
     <div class="card-body table-wrap">
       <table class="summary-table">
         <thead><tr><th></th><th>Standard</th><th>Actual</th></tr></thead>
@@ -419,11 +419,7 @@
           <tr><td>บรรจุภัณฑ์</td><td id="s_pack_a">0.00</td><td id="s_pack_b">0.00</td></tr>
           <tr><td>ค่าแรง</td><td id="s_labor_a">0.00</td><td id="s_labor_b">0.00</td></tr>
           <tr><td>โสหุ้ยการผลิต</td><td id="s_oh_a">0.00</td><td id="s_oh_b">0.00</td></tr>
-          <tr class="total"><td>รวมต้นทุนต่อชิ้น</td><td id="s_total_a">0.00</td><td id="s_total_b">0.00</td></tr>
-          <tr class="total" style="border-top:1px dashed var(--gray-border);">
-            <td>ต้นทุนรวมต่อหน่วยขาย<span style="display:block; font-size:10px; color:var(--gray-text); font-weight:400;">รวมต้นทุนต่อชิ้น × จำนวนชิ้น/หน่วยขาย (<span id="qtyPerUnitTag">1</span>)</span></td>
-            <td id="s_totalunit_a">0.00</td><td id="s_totalunit_b">0.00</td>
-          </tr>
+          <tr class="total"><td>รวมต้นทุนต่อหน่วยขาย</td><td id="s_total_a">0.00</td><td id="s_total_b">0.00</td></tr>
           <tr class="editable">
             <td>ราคาขายต่อชิ้น</td>
             <td colspan="2" style="text-align:right;">
@@ -488,7 +484,10 @@
       </div>
       <div style="margin-top:10px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
         <button type="button" class="btn btn-outline btn-sm" id="pullNpdBtn" title="ดึงตัวเลขวัตถุดิบ/บรรจุภัณฑ์/ค่าแรง/โสหุ้ยจากต้นทุนจริงปัจจุบันมาใส่ในช่อง NPD (ปรับแก้ต่อได้)">⬇️ ดึงค่าจากต้นทุนจริงปัจจุบัน</button>
-        <div style="font-size:13.5px; color:var(--gray-text);">รวมต้นทุน NPD: <b id="npd_total_input" style="color:var(--navy); font-size:15px;">0.00</b> บาท/ชิ้น</div>
+        <div style="font-size:13.5px; color:var(--gray-text); text-align:right;">
+          รวมต้นทุน NPD: <b id="npd_total_input" style="color:var(--navy); font-size:15px;">0.00</b> บาท/ชิ้น
+          <span id="npd_total_input_unit" style="display:block; font-size:11.5px;">(× 1 หน่วย = 0.00 บาท/หน่วยขาย)</span>
+        </div>
       </div>
 
       <div class="table-wrap" style="margin-top:18px;">
@@ -505,7 +504,7 @@
         </table>
       </div>
       <div class="status-msg" style="margin-top:8px; font-size:12px; color:var(--gray-text);">
-        กรอกต้นทุนตอนพัฒนาสินค้า (NPD) ทีละหมวดไว้ที่นี่ — ระบบจะเทียบกับต้นทุนจริงปัจจุบัน (คำนวณจากสูตร/ราคาวัตถุดิบ/ค่าแรง/โสหุ้ยล่าสุดด้านบน) ให้อัตโนมัติ ค่าที่กรอกจะถูกบันทึกพร้อมกับข้อมูลสินค้าเมื่อกด 💾 บันทึก
+        กรอกต้นทุนตอนพัฒนาสินค้า (NPD) ทีละหมวดไว้ที่นี่เป็นต้นทุนต่อ "ชิ้น" — ตารางด้านบนจะเทียบกับต้นทุนจริงปัจจุบันให้อัตโนมัติ โดยคูณด้วยจำนวนชิ้น/หน่วยขายแล้ว (แสดงเป็นต้นทุนต่อหน่วยขาย) ค่าที่กรอกจะถูกบันทึกพร้อมกับข้อมูลสินค้าเมื่อกด 💾 บันทึก
       </div>
     </div>
   </section>
@@ -1367,20 +1366,19 @@ function calcSummary() {
   const labor = calcLaborGroups();
   const oh = calcOverhead();
 
-  $("s_raw_a").textContent = fmt(raw);
-  $("s_pack_a").textContent = fmt(pack);
-  $("s_labor_a").textContent = fmt(labor);
-  $("s_oh_a").textContent = fmt(oh.withRent);
-
-  const totalA = raw + pack + labor + oh.withRent;
-  const totalB = raw + pack + labor + oh.withoutRent; // เก็บไว้ใช้ในส่วนคำนวณโสหุ้ย/Excel เท่านั้น ไม่แสดงในตารางนี้แล้ว
-  $("s_total_a").textContent = fmt(totalA);
-
   const qtyPerUnit = num($("f_qtyPerUnit").value) || 1;
-  $("qtyPerUnitTag").textContent = fmt(qtyPerUnit);
-  $("s_totalunit_a").textContent = fmt(totalA * qtyPerUnit);
+  $("qtyPerUnitTagMain").textContent = fmt(qtyPerUnit);
 
-  // cache สำหรับ Production Yield & Actual Cost (ใช้ totalA เป็น Standard Cost อ้างอิง)
+  $("s_raw_a").textContent = fmt(raw * qtyPerUnit);
+  $("s_pack_a").textContent = fmt(pack * qtyPerUnit);
+  $("s_labor_a").textContent = fmt(labor * qtyPerUnit);
+  $("s_oh_a").textContent = fmt(oh.withRent * qtyPerUnit);
+
+  const totalA = raw + pack + labor + oh.withRent; // ต้นทุน Standard ต่อ "ชิ้น" (ยังไม่คูณ qty) ใช้เป็นฐานคำนวณอื่น ๆ ในหน้านี้
+  const totalB = raw + pack + labor + oh.withoutRent; // เก็บไว้ใช้ในส่วนคำนวณโสหุ้ย/Excel เท่านั้น ไม่แสดงในตารางนี้แล้ว
+  $("s_total_a").textContent = fmt(totalA * qtyPerUnit);
+
+  // cache สำหรับ Production Yield & Actual Cost (ใช้ totalA เป็น Standard Cost อ้างอิง ต่อชิ้น)
   lastStandardCostA = totalA;
   lastComponentCosts = { raw, pack, labor, oh: oh.withRent };
   renderNpdCompare();
@@ -1393,14 +1391,13 @@ function calcSummary() {
   const hasActualCost = y && y.actualCost !== null && y.actualCost !== undefined;
 
   if (hasActualCost) {
-    $("s_raw_b").textContent = fmt(y.actualComponents.raw);
-    $("s_pack_b").textContent = fmt(y.actualComponents.pack);
-    $("s_labor_b").textContent = fmt(y.actualComponents.labor);
-    $("s_oh_b").textContent = fmt(y.actualComponents.oh);
-    $("s_total_b").textContent = fmt(y.actualCost);
-    $("s_totalunit_b").textContent = fmt(y.actualCost * qtyPerUnit);
+    $("s_raw_b").textContent = fmt(y.actualComponents.raw * qtyPerUnit);
+    $("s_pack_b").textContent = fmt(y.actualComponents.pack * qtyPerUnit);
+    $("s_labor_b").textContent = fmt(y.actualComponents.labor * qtyPerUnit);
+    $("s_oh_b").textContent = fmt(y.actualComponents.oh * qtyPerUnit);
+    $("s_total_b").textContent = fmt(y.actualCost * qtyPerUnit);
   } else {
-    ["s_raw_b", "s_pack_b", "s_labor_b", "s_oh_b", "s_total_b", "s_totalunit_b"].forEach(id => $(id).textContent = "-");
+    ["s_raw_b", "s_pack_b", "s_labor_b", "s_oh_b", "s_total_b"].forEach(id => $(id).textContent = "-");
   }
 
   const sellPrice = num($("f_sellprice").value);
@@ -1500,18 +1497,20 @@ function getNpdInputs() {
   };
 }
 function renderNpdCompare() {
+  const qty = num($("f_qtyPerUnit").value) || 1;
   const now = { raw: lastComponentCosts.raw, pack: lastComponentCosts.pack, labor: lastComponentCosts.labor, oh: lastComponentCosts.oh, other: 0, total: lastStandardCostA };
   const keys = ["raw", "pack", "labor", "oh", "other", "total"];
   const npdVals = getNpdInputs();
   const npdTotal = npdVals.raw + npdVals.pack + npdVals.labor + npdVals.oh + npdVals.other;
   const npdMap = { ...npdVals, total: npdTotal };
   $("npd_total_input").textContent = fmt(npdTotal);
+  $("npd_total_input_unit").textContent = `(× ${fmt(qty)} หน่วย = ${fmt(npdTotal * qty)} บาท/หน่วยขาย)`;
 
   if (npdTotal <= 0) {
     $("npdHint").textContent = "ยังไม่ได้กรอกต้นทุน NPD";
     keys.forEach(k => {
       $(`npd_${k}`).textContent = "-";
-      $(`npd_${k}_now`).textContent = fmt(now[k]);
+      $(`npd_${k}_now`).textContent = fmt(now[k] * qty);
       $(`npd_${k}_diff`).textContent = "-";
       $(`npd_${k}_diff`).className = "";
       $(`npd_${k}_diffpct`).textContent = "-";
@@ -1522,8 +1521,8 @@ function renderNpdCompare() {
   const savedDate = npdSavedAt ? new Date(npdSavedAt).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" }) : "-";
   $("npdHint").textContent = `กรอกไว้เมื่อ ${savedDate}`;
   keys.forEach(k => {
-    const npdVal = npdMap[k] || 0;
-    const nowVal = now[k];
+    const npdVal = (npdMap[k] || 0) * qty;
+    const nowVal = now[k] * qty;
     const diff = nowVal - npdVal;
     const diffPct = npdVal > 0 ? (diff / npdVal) * 100 : (nowVal > 0 ? 100 : 0);
     $(`npd_${k}`).textContent = fmt(npdVal);
