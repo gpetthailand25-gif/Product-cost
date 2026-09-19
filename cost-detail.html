@@ -746,11 +746,11 @@
     </div>
     <div class="card-body">
       <div class="overhead-grid">
-        <div><label>ค่าไฟฟ้า</label><input type="number" step="0.0001" id="oh_electric" value="0"></div>
-        <div><label>ค่าน้ำ</label><input type="number" step="0.0001" id="oh_water" value="0"></div>
-        <div><label>ค่าเผื่อ</label><input type="number" step="0.0001" id="oh_allowance" value="0"></div>
-        <div><label>ค่าเช่า<span class="rent-tag">รวมเฉพาะคอลัมน์ซ้าย</span></label><input type="number" step="0.0001" id="oh_rent" value="0"></div>
-        <div><label>ค่าขนส่ง<span class="rent-tag">รวมเฉพาะคอลัมน์ซ้าย</span></label><input type="number" step="0.0001" id="oh_shipping" value="0"></div>
+        <div><label><span id="ohLabel_electric">ค่าไฟฟ้า</span></label><input type="number" step="0.0001" id="oh_electric" value="0"></div>
+        <div><label><span id="ohLabel_water">ค่าน้ำ</span></label><input type="number" step="0.0001" id="oh_water" value="0"></div>
+        <div><label><span id="ohLabel_allowance">ค่าเผื่อ</span></label><input type="number" step="0.0001" id="oh_allowance" value="0"></div>
+        <div><label><span id="ohLabel_rent">ค่าเช่า</span><span class="rent-tag">รวมเฉพาะคอลัมน์ซ้าย</span></label><input type="number" step="0.0001" id="oh_rent" value="0"></div>
+        <div><label><span id="ohLabel_shipping">ค่าขนส่ง</span><span class="rent-tag">รวมเฉพาะคอลัมน์ซ้าย</span></label><input type="number" step="0.0001" id="oh_shipping" value="0"></div>
       </div>
       <div class="waste-line">
         <span class="readout">รวมโสหุ้ยการผลิต (รวมเช่า+ขนส่ง) <b id="ohTotalA">0.00</b> &nbsp;|&nbsp; ไม่รวม <b id="ohTotalB">0.00</b></span>
@@ -773,6 +773,8 @@ const MATERIALS_COL = "materials";
 const RECIPES_COL = "recipes";
 const LABOR_STEPS_COL = "laborStepGroups";
 const OVERHEAD_COL = "overheadAllocations";
+const OVERHEAD_TYPES_COL = "overheadSettings";
+const OVERHEAD_TYPES_DOC_ID = "expenseTypes";
 const TERMS_COL = "tradeTerms";
 
 const $ = (id) => document.getElementById(id);
@@ -800,7 +802,7 @@ let lastStandardCostA = 0; // cache ต้นทุน/ชิ้น (รวม�
 let lastComponentCosts = { raw: 0, pack: 0, labor: 0, oh: 0 };
 let npdSavedAt = null; // วันที่กรอกต้นทุน NPD ครั้งแรก (คงไว้แม้จะแก้ไขค่าในภายหลัง)
 let lossIncludeMap = { comp: {}, pack: {}, labor: {}, oh: { electric: true, water: true, allowance: true, rent: true, shipping: true } };
-const OH_KEYS = [
+let OH_KEYS = [
   { key: "electric", label: "ค่าไฟฟ้า" },
   { key: "water", label: "ค่าน้ำ" },
   { key: "allowance", label: "ค่าเผื่อ" },
@@ -918,6 +920,26 @@ function fillLaborStepSelect(sel, selectedId) {
 }
 
 /* ---------------- ปันส่วนโสหุ้ยต่อชิ้น (auto-fill โสหุ้ยการผลิต) ---------------- */
+async function loadOverheadExpenseLabels() {
+  // ดึงชื่อค่าใช้จ่ายล่าสุดจากหน้า "ปันส่วนโสหุ้ย" (ที่แก้ไข/เพิ่มเองได้) มาใช้ตั้งชื่อป้ายกำกับใน "โสหุ้ยการผลิต" ให้ตรงกัน
+  if (!db) return;
+  try {
+    const snap = await getDoc(doc(db, OVERHEAD_TYPES_COL, OVERHEAD_TYPES_DOC_ID));
+    if (!snap.exists() || !Array.isArray(snap.data().types)) return;
+    const types = snap.data().types;
+    const knownKeys = ["electric", "water", "allowance", "rent", "shipping"];
+    knownKeys.forEach(key => {
+      const t = types.find(x => x.key === key);
+      if (!t || !t.label) return;
+      const el = $(`ohLabel_${key}`);
+      if (el) el.textContent = t.label;
+      const ohKeyItem = OH_KEYS.find(o => o.key === key);
+      if (ohKeyItem) ohKeyItem.label = t.label; // sync ป้ายชื่อในเช็คลิสต์ Loss Analysis ด้วย
+    });
+  } catch (e) {
+    console.warn("โหลดชื่อประเภทค่าใช้จ่ายไม่สำเร็จ", e);
+  }
+}
 async function loadOverheadAllocations() {
   if (!db) return;
   try {
@@ -966,8 +988,9 @@ function applyOverheadFromCategory(opts) {
   $("oh_allowance").value = round2(num(exp.allowance) + extra);
   $("oh_rent").value = num(exp.rent);
   $("oh_shipping").value = num(exp.shipping);
+  const allowanceLabel = $("ohLabel_allowance") ? $("ohLabel_allowance").textContent : "ค่าเผื่อ";
   $("ohSourceTag").textContent = extra > 0
-    ? `ต่อชิ้น — ดึงจากปันส่วนโสหุ้ยอัตโนมัติ: ${cat} (รวมค่าใช้จ่ายประเภทอื่นที่เพิ่มไว้ ${fmt(extra)} บาท เข้าช่อง "ค่าเผื่อ")`
+    ? `ต่อชิ้น — ดึงจากปันส่วนโสหุ้ยอัตโนมัติ: ${cat} (รวมค่าใช้จ่ายประเภทอื่นที่เพิ่มไว้ ${fmt(extra)} บาท เข้าช่อง "${allowanceLabel}")`
     : `ต่อชิ้น — ดึงจากปันส่วนโสหุ้ยอัตโนมัติ: ${cat}`;
   calcSummary();
 }
@@ -2194,11 +2217,11 @@ $("exportExcelBtn").addEventListener("click", () => {
   // Sheet 5: โสหุ้ยการผลิต
   const ohRows = [
     ["รายการ", "จำนวนเงิน"],
-    ["ค่าไฟฟ้า", num($("oh_electric").value)],
-    ["ค่าน้ำ", num($("oh_water").value)],
-    ["ค่าเผื่อ", num($("oh_allowance").value)],
-    ["ค่าเช่า", num($("oh_rent").value)],
-    ["ค่าขนส่ง", num($("oh_shipping").value)],
+    [$("ohLabel_electric").textContent, num($("oh_electric").value)],
+    [$("ohLabel_water").textContent, num($("oh_water").value)],
+    [$("ohLabel_allowance").textContent, num($("oh_allowance").value)],
+    [$("ohLabel_rent").textContent, num($("oh_rent").value)],
+    [$("ohLabel_shipping").textContent, num($("oh_shipping").value)],
     ["รวม (รวมเช่า+ขนส่ง)", s.overheadWithRent],
     ["รวม (ไม่รวมเช่า+ขนส่ง)", s.overheadWithoutRent]
   ];
@@ -2374,6 +2397,7 @@ async function loadExisting() {
   await loadRecipes();
   await loadLaborSteps();
   await loadOverheadAllocations();
+  await loadOverheadExpenseLabels();
   await loadTradeTerms();
   if (currentDocId) {
     await loadExisting();
