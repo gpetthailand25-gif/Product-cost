@@ -357,16 +357,27 @@ function computeCost(d) {
   const actual = computeActualCost(d, itemized);
   const isActual = !!actual;
   const qtyPerUnit = num(d.qtyPerUnit) || 1;
-  const raw = (isActual ? actual.raw : itemized.raw) * qtyPerUnit;
-  const pack = (isActual ? actual.pack : itemized.pack) * qtyPerUnit;
-  const labor = (isActual ? actual.labor : itemized.labor) * qtyPerUnit;
-  const overhead = (isActual ? actual.overhead : itemized.overhead) * qtyPerUnit;
-  const total = (isActual ? actual.total : standardTotal) * qtyPerUnit;
+
+  // ต้นทุนต่อ "ชิ้น" (ยังไม่คูณ qty) — ใช้เทียบกับราคาขายต่อชิ้น (sellingPrice) เพื่อคำนวณ Gross Margin
+  // ให้ตรงกับสูตรเดียวกับหน้ารายละเอียดต้นทุนทุกประการ
+  const rawPerPiece = isActual ? actual.raw : itemized.raw;
+  const packPerPiece = isActual ? actual.pack : itemized.pack;
+  const laborPerPiece = isActual ? actual.labor : itemized.labor;
+  const overheadPerPiece = isActual ? actual.overhead : itemized.overhead;
+  const totalPerPiece = isActual ? actual.total : standardTotal;
+
+  // ต้นทุนต่อ "หน่วยขาย" (คูณจำนวนชิ้น/หน่วยขายแล้ว) — ใช้แสดงในคอลัมน์ต้นทุนจริง/เทียบ NPD
+  const raw = rawPerPiece * qtyPerUnit;
+  const pack = packPerPiece * qtyPerUnit;
+  const labor = laborPerPiece * qtyPerUnit;
+  const overhead = overheadPerPiece * qtyPerUnit;
+  const total = totalPerPiece * qtyPerUnit;
+
   const hasRecipe = (d.components || []).some(c => (c.ingredients || []).length > 0) || (d.packaging || []).length > 0;
-  const sellingPrice = num(d.sellingPrice);
-  const netPrice = computeNetPrice(d, sellingPrice);
-  const margin = sellingPrice > 0 ? (netPrice > 0 ? ((netPrice - total) / netPrice) * 100 : 0) : null;
-  return { raw, pack, labor, overhead, total, standardTotal: standardTotal * qtyPerUnit, isActual, hasRecipe, margin, netPrice, qtyPerUnit };
+  const sellingPrice = num(d.sellingPrice); // ราคาขายต่อชิ้น
+  const netPrice = computeNetPrice(d, sellingPrice); // ราคาสุทธิต่อชิ้น
+  const margin = sellingPrice > 0 ? (netPrice > 0 ? ((netPrice - totalPerPiece) / netPrice) * 100 : 0) : null;
+  return { raw, pack, labor, overhead, total, totalPerPiece, standardTotal: standardTotal * qtyPerUnit, isActual, hasRecipe, margin, netPrice, qtyPerUnit };
 }
 
 function statusOf(d) {
