@@ -177,7 +177,7 @@
   <section class="card">
     <div class="card-head">
       <h2>รายการสินค้า <span class="muted" id="countTag" style="font-weight:400; font-size:12px;">(0 รายการ)</span></h2>
-      <span class="muted" style="font-size:12px;">หน้านี้คือต้นทุนจริงของบัญชี (คำนวณจากราคาวัตถุดิบ/ค่าแรง/โสหุ้ยล่าสุด) ไม่ใช่หน้าสำหรับเสนอราคาขาย — เทียบกับต้นทุน NPD เพื่อดูว่าต่างกันตรงไหน</span>
+      <span class="muted" style="font-size:12px;">หน้านี้คือต้นทุนจริงของบัญชี — ใช้ Actual Cost ตามผลผลิตจริง (Yield/Loss) เมื่อมีข้อมูล Production ในหน้ารายละเอียดต้นทุน มิฉะนั้นจะใช้ต้นทุนตามสูตรแทนชั่วคราว ไม่ใช่หน้าสำหรับเสนอราคาขาย — เทียบกับต้นทุน NPD เพื่อดูว่าต่างกันตรงไหน</span>
     </div>
     <div class="card-body">
       <div class="toolbar">
@@ -198,7 +198,7 @@
             <th style="width:10%">ช่องทาง/ห้าง</th>
             <th class="num" style="width:7%">รวมหัก %</th>
             <th class="num" style="width:8%">ต้นทุน NPD</th>
-            <th class="num" style="width:8%">ต้นทุนจริง</th>
+            <th class="num" style="width:8%" title="Actual Cost ตามผลผลิตจริง (Yield/Loss) — ถ้ายังไม่มีข้อมูล Production จะใช้ต้นทุนตามสูตรแทนชั่วคราว">ต้นทุนจริง</th>
             <th class="num" style="width:11%">ผลต่าง (จริง−NPD)</th>
             <th class="num" style="width:8%">ราคาขาย</th>
             <th class="num" style="width:7%">มาร์จิ้น %</th>
@@ -281,8 +281,8 @@ function computeNetPrice(d, sellingPrice) {
   return netPrice;
 }
 
-function computeCost(d) {
-  const raw = (d.components || []).reduce((total, comp) => {
+function computeItemizedCost(d) {
+  const rawItems = (d.components || []).map((comp, idx) => {
     let money = 0, weightUsed = 0;
     (comp.ingredients || []).forEach(ing => {
       const ppg = ing.weightG > 0 ? ing.price / ing.weightG : 0;
@@ -291,28 +291,85 @@ function computeCost(d) {
     });
     const net = weightUsed * (1 - (comp.wastePercent || 0) / 100);
     const costPerGram = net > 0 ? money / net : 0;
-    return total + costPerGram * (comp.gramsPerPiece || 0);
-  }, 0);
-  const pack = (d.packaging || []).reduce((sum, p) => {
+    return { id: String(idx), cost: costPerGram * (comp.gramsPerPiece || 0) };
+  });
+  const packItems = (d.packaging || []).map((p, idx) => {
     const ppu = p.packQty > 0 ? p.price / p.packQty : 0;
-    return sum + ppu * (p.amountUsed || 0);
-  }, 0);
+    return { id: String(idx), cost: ppu * (p.amountUsed || 0) };
+  });
   const rate = d.laborRatePerMinute || 0.78;
-  const laborStepsFlat = (d.laborGroups && d.laborGroups.length)
-    ? d.laborGroups.flatMap(g => g.steps || [])
-    : (d.laborSteps || []);
-  const labor = laborStepsFlat.reduce((sum, l) => {
-    return sum + (l.unitsPerBatch > 0 ? (l.minutes * l.headcount * rate) / l.unitsPerBatch : 0);
-  }, 0);
+  const laborGroupsArr = (d.laborGroups && d.laborGroups.length)
+    ? d.laborGroups
+    : (d.laborSteps && d.laborSteps.length ? [{ name: "ทั่วไป", steps: d.laborSteps }] : []);
+  const laborItems = laborGroupsArr.map((g, idx) => {
+    const cost = (g.steps || []).reduce((sum, s) => sum + (s.unitsPerBatch > 0 ? (s.minutes * s.headcount * rate) / s.unitsPerBatch : 0), 0);
+    return { id: String(idx), cost };
+  });
   const oh = d.overhead || {};
-  const overhead = num(oh.electric) + num(oh.water) + num(oh.allowance ?? oh.gas) + num(oh.rent) + num(oh.shipping);
-  const total = raw + pack + labor + overhead;
+  const ohItems = [
+    { id: "electric", cost: num(oh.electric) },
+    { id: "water", cost: num(oh.water) },
+    { id: "allowance", cost: num(oh.allowance ?? oh.gas) },
+    { id: "rent", cost: num(oh.rent) },
+    { id: "shipping", cost: num(oh.shipping) }
+  ];
+  const sum = (items) => items.reduce((s, i) => s + i.cost, 0);
+  return {
+    rawItems, packItems, laborItems, ohItems,
+    raw: sum(rawItems), pack: sum(packItems), labor: sum(laborItems), overhead: sum(ohItems)
+  };
+}
+
+/* ต้นทุนจริงตามผลผลิตจริง (Actual Cost) — เทียบเคียงกับ calcYield() ในหน้ารายละเอียดต้นทุน
+   ใช้ standardOutput/actualGoodOutput (หรือค่าเฉลี่ยจาก productionBatches) + lossIncludeMap
+   เพื่อกระจายต้นทุนของรายการที่ "เกิดขึ้นแล้วก่อนจุดสูญเสีย" ทับจำนวนผลผลิตจริงที่ได้ */
+function computeActualCost(d, itemized) {
+  const mode = d.yieldMode === "average" ? "average" : "current";
+  let std = 0, actual = null;
+  if (mode === "average") {
+    const batches = d.productionBatches || [];
+    if (!batches.length) return null;
+    std = batches.reduce((s, b) => s + num(b.std), 0);
+    actual = batches.reduce((s, b) => s + num(b.actual), 0);
+  } else {
+    std = num(d.standardOutput);
+    if (d.actualGoodOutput === null || d.actualGoodOutput === undefined || d.actualGoodOutput === "") return null;
+    actual = num(d.actualGoodOutput);
+  }
+  if (std <= 0 || actual === 0) return null;
+
+  const lossMap = d.lossIncludeMap || {};
+  const split = (items, mapObj) => {
+    mapObj = mapObj || {};
+    let incurred = 0, notIncurred = 0;
+    items.forEach(it => { if (mapObj[it.id] !== false) incurred += it.cost; else notIncurred += it.cost; });
+    return { incurred, notIncurred };
+  };
+  const scaleUp = (s) => (s.incurred * std / actual) + s.notIncurred;
+
+  const aRaw = scaleUp(split(itemized.rawItems, lossMap.comp));
+  const aPack = scaleUp(split(itemized.packItems, lossMap.pack));
+  const aLabor = scaleUp(split(itemized.laborItems, lossMap.labor));
+  const aOh = scaleUp(split(itemized.ohItems, lossMap.oh));
+  return { raw: aRaw, pack: aPack, labor: aLabor, overhead: aOh, total: aRaw + aPack + aLabor + aOh };
+}
+
+function computeCost(d) {
+  const itemized = computeItemizedCost(d);
+  const standardTotal = itemized.raw + itemized.pack + itemized.labor + itemized.overhead;
+  const actual = computeActualCost(d, itemized);
+  const isActual = !!actual;
+  const raw = isActual ? actual.raw : itemized.raw;
+  const pack = isActual ? actual.pack : itemized.pack;
+  const labor = isActual ? actual.labor : itemized.labor;
+  const overhead = isActual ? actual.overhead : itemized.overhead;
+  const total = isActual ? actual.total : standardTotal;
   const hasRecipe = (d.components || []).some(c => (c.ingredients || []).length > 0) || (d.packaging || []).length > 0;
   const sellingPrice = num(d.sellingPrice);
   const netPrice = computeNetPrice(d, sellingPrice);
   const margin = sellingPrice > 0 ? (netPrice > 0 ? ((netPrice - total) / netPrice) * 100 : 0) : null;
   const suggested = total * 2; // ราคาขายแนะนำที่ Gross Margin 50% (price = cost / (1 - 0.5))
-  return { raw, pack, labor, overhead, total, hasRecipe, margin, suggested, netPrice };
+  return { raw, pack, labor, overhead, total, standardTotal, isActual, hasRecipe, margin, suggested, netPrice };
 }
 
 function statusOf(d, cost) {
@@ -392,6 +449,12 @@ function diffClass(n) {
   return n > 0 ? "diff-up" : "diff-down";
 }
 
+function actualCostCell(cost) {
+  if (!cost.hasRecipe) return "-";
+  if (cost.isActual) return fmt(cost.total);
+  return `${fmt(cost.total)}<span class="muted" style="display:block; font-size:10px;" title="ยังไม่มีข้อมูลผลผลิตจริง (Standard Output / Actual Good Output) ในหน้ารายละเอียดต้นทุน ใช้ต้นทุนตามสูตรไปก่อน">(ตามสูตร)</span>`;
+}
+
 function buildNpdDiffCell(cost, npd) {
   if (!cost.hasRecipe) return `<span class="muted">-</span>`;
   if (!npd) return `<span class="muted" title="ยังไม่ได้บันทึกต้นทุน NPD ที่หน้ารายละเอียดต้นทุน">— ยังไม่มี NPD —</span>`;
@@ -456,7 +519,7 @@ function buildRow(d) {
     </td>
     <td class="num">${deductCell}</td>
     <td class="num">${cost.hasRecipe && npd ? fmt(npd.total) : '<span class="muted">-</span>'}</td>
-    <td class="num">${cost.hasRecipe ? fmt(cost.total) : "-"}</td>
+    <td class="num">${actualCostCell(cost)}</td>
     <td class="num">${buildNpdDiffCell(cost, npd)}</td>
     <td class="num"><input type="number" step="0.01" class="f-price" value="${d.sellingPrice ?? ""}" placeholder="0"></td>
     <td class="num"><span class="pill ${marginPillClass}">${marginText}</span></td>

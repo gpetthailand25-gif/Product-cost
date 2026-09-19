@@ -400,6 +400,7 @@
         </select>
       </div>
       <div><label>หน่วยขาย</label><input type="text" id="f_unit" value="ชิ้น"></div>
+      <div><label>จำนวนชิ้น/หน่วยขาย</label><input type="number" step="1" min="1" id="f_qtyPerUnit" value="1"></div>
       <div><label>น้ำหนัก (ก./ชิ้น)</label><input type="number" step="0.01" id="f_weight" value="0"></div>
       <div><label>การบรรจุ (ชิ้น/หีบ)</label><input type="number" step="1" id="f_pack" value="0"></div>
       <div><label>ผู้รับผิดชอบ</label><input type="text" id="f_owner" placeholder="ชื่อผู้รับผิดชอบ"></div>
@@ -419,6 +420,10 @@
           <tr><td>ค่าแรง</td><td id="s_labor_a">0.00</td><td id="s_labor_b">0.00</td></tr>
           <tr><td>โสหุ้ยการผลิต</td><td id="s_oh_a">0.00</td><td id="s_oh_b">0.00</td></tr>
           <tr class="total"><td>รวมต้นทุนต่อชิ้น</td><td id="s_total_a">0.00</td><td id="s_total_b">0.00</td></tr>
+          <tr class="total" style="border-top:1px dashed var(--gray-border);">
+            <td>ต้นทุนรวมต่อหน่วยขาย<span style="display:block; font-size:10px; color:var(--gray-text); font-weight:400;">รวมต้นทุนต่อชิ้น × จำนวนชิ้น/หน่วยขาย (<span id="qtyPerUnitTag">1</span>)</span></td>
+            <td id="s_totalunit_a">0.00</td><td id="s_totalunit_b">0.00</td>
+          </tr>
           <tr class="editable">
             <td>ราคาขายต่อชิ้น</td>
             <td colspan="2" style="text-align:right;">
@@ -1371,6 +1376,10 @@ function calcSummary() {
   const totalB = raw + pack + labor + oh.withoutRent; // เก็บไว้ใช้ในส่วนคำนวณโสหุ้ย/Excel เท่านั้น ไม่แสดงในตารางนี้แล้ว
   $("s_total_a").textContent = fmt(totalA);
 
+  const qtyPerUnit = num($("f_qtyPerUnit").value) || 1;
+  $("qtyPerUnitTag").textContent = fmt(qtyPerUnit);
+  $("s_totalunit_a").textContent = fmt(totalA * qtyPerUnit);
+
   // cache สำหรับ Production Yield & Actual Cost (ใช้ totalA เป็น Standard Cost อ้างอิง)
   lastStandardCostA = totalA;
   lastComponentCosts = { raw, pack, labor, oh: oh.withRent };
@@ -1389,8 +1398,9 @@ function calcSummary() {
     $("s_labor_b").textContent = fmt(y.actualComponents.labor);
     $("s_oh_b").textContent = fmt(y.actualComponents.oh);
     $("s_total_b").textContent = fmt(y.actualCost);
+    $("s_totalunit_b").textContent = fmt(y.actualCost * qtyPerUnit);
   } else {
-    ["s_raw_b", "s_pack_b", "s_labor_b", "s_oh_b", "s_total_b"].forEach(id => $(id).textContent = "-");
+    ["s_raw_b", "s_pack_b", "s_labor_b", "s_oh_b", "s_total_b", "s_totalunit_b"].forEach(id => $(id).textContent = "-");
   }
 
   const sellPrice = num($("f_sellprice").value);
@@ -1856,7 +1866,7 @@ $("addPackBtn").addEventListener("click", () => { makePackRow(); calcSummary(); 
 $("addLaborGroupBtn").addEventListener("click", () => { makeLaborGroup(); calcSummary(); });
 
 ["laborRate", "oh_electric", "oh_water", "oh_allowance", "oh_rent", "oh_shipping", "f_sellprice", "f_promoValue",
- "npd_raw_input", "npd_pack_input", "npd_labor_input", "npd_oh_input", "npd_other_input"]
+ "npd_raw_input", "npd_pack_input", "npd_labor_input", "npd_oh_input", "npd_other_input", "f_qtyPerUnit"]
   .forEach(id => $(id).addEventListener("input", calcSummary));
 
 $("f_tradeterm").addEventListener("change", calcSummary);
@@ -1881,6 +1891,7 @@ function collectData() {
     customer: $("f_customer").value,
     category: $("f_category").value,
     unit: $("f_unit").value,
+    qtyPerUnit: num($("f_qtyPerUnit").value) || 1,
     weightPerUnit: num($("f_weight").value),
     packPerBox: num($("f_pack").value),
     owner: $("f_owner").value,
@@ -1968,6 +1979,7 @@ $("exportExcelBtn").addEventListener("click", () => {
     ["ลูกค้า", $("f_customer").value],
     ["ประเภท", $("f_category").value],
     ["หน่วยขาย", $("f_unit").value],
+    ["จำนวนชิ้น/หน่วยขาย", num($("f_qtyPerUnit").value) || 1],
     ["น้ำหนัก (ก./ชิ้น)", num($("f_weight").value)],
     ["การบรรจุ (ชิ้น/หีบ)", num($("f_pack").value)],
     ["ผู้รับผิดชอบ", $("f_owner").value],
@@ -1979,6 +1991,7 @@ $("exportExcelBtn").addEventListener("click", () => {
     ["ค่าแรง", s.labor, s.actualComponents ? round2(s.actualComponents.labor) : ""],
     ["โสหุ้ยการผลิต", s.overheadWithRent, s.actualComponents ? round2(s.actualComponents.oh) : ""],
     ["รวมต้นทุนต่อชิ้น", s.totalA, s.actualCost !== null ? round2(s.actualCost) : ""],
+    ["ต้นทุนรวมต่อหน่วยขาย", round2(s.totalA * (num($("f_qtyPerUnit").value) || 1)), s.actualCost !== null ? round2(s.actualCost * (num($("f_qtyPerUnit").value) || 1)) : ""],
     ["ราคาขายต่อชิ้น", s.sellPrice, s.sellPrice]
   ];
   if (s.term) {
@@ -2174,6 +2187,7 @@ async function loadExisting() {
   $("f_customer").value = d.customer || "";
   $("f_category").value = d.category || "";
   $("f_unit").value = d.unit || "ชิ้น";
+  $("f_qtyPerUnit").value = d.qtyPerUnit || 1;
   $("f_weight").value = d.weightPerUnit || 0;
   $("f_pack").value = d.packPerBox || 0;
   $("f_owner").value = d.owner || "";
