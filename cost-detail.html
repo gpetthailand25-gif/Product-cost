@@ -946,12 +946,24 @@ function applyOverheadFromCategory(showMissingAlert) {
   if (hasExisting) {
     if (!confirm(`ดึงค่าโสหุ้ยจากตาราง "${cat}" มาแทนที่ตัวเลขปัจจุบันหรือไม่?`)) return;
   }
-  $("oh_electric").value = row.electric || 0;
-  $("oh_water").value = row.water || 0;
-  $("oh_allowance").value = row.allowance || 0;
-  $("oh_rent").value = row.rent || 0;
-  $("oh_shipping").value = row.shipping || 0;
-  $("ohSourceTag").textContent = `ต่อชิ้น — ดึงจากปันส่วนโสหุ้ย: ${cat}`;
+  // รองรับข้อมูลปันส่วนโสหุ้ยรูปแบบใหม่ (expenses: {key:value}) ที่แก้ไข/เพิ่มประเภทค่าใช้จ่ายเองได้
+  // และข้อมูลรูปแบบเก่า (ฟิลด์ตรง ๆ rent/electric/water/allowance/shipping)
+  const exp = row.expenses || {
+    rent: row.rent || 0, electric: row.electric || 0, water: row.water || 0,
+    allowance: row.allowance || 0, shipping: row.shipping || 0
+  };
+  const knownKeys = ["rent", "electric", "water", "allowance", "shipping"];
+  let extra = 0; // ผลรวมของประเภทค่าใช้จ่ายที่เพิ่มขึ้นใหม่ในหน้าปันส่วนโสหุ้ย (นอกเหนือ 5 ช่องมาตรฐานที่หน้านี้รองรับ)
+  Object.keys(exp).forEach(k => { if (!knownKeys.includes(k)) extra += num(exp[k]); });
+
+  $("oh_electric").value = num(exp.electric);
+  $("oh_water").value = num(exp.water);
+  $("oh_allowance").value = round2(num(exp.allowance) + extra);
+  $("oh_rent").value = num(exp.rent);
+  $("oh_shipping").value = num(exp.shipping);
+  $("ohSourceTag").textContent = extra > 0
+    ? `ต่อชิ้น — ดึงจากปันส่วนโสหุ้ย: ${cat} (รวมค่าใช้จ่ายประเภทอื่นที่เพิ่มไว้ ${fmt(extra)} บาท เข้าช่อง "ค่าเผื่อ")`
+    : `ต่อชิ้น — ดึงจากปันส่วนโสหุ้ย: ${cat}`;
   calcSummary();
 }
 

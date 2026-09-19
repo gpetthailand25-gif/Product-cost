@@ -96,6 +96,15 @@
   }
   .add-row-btn:hover{background:#f0f3f6;}
   .page-header-sticky{position:sticky; top:0; z-index:100;}
+  th.type-th{white-space:nowrap;}
+  .type-actions{display:inline-flex; gap:4px; margin-left:6px;}
+  .type-edit, .type-del{
+    background:none; border:none; cursor:pointer; font-size:11px;
+    color:var(--gray-text); padding:0; line-height:1;
+  }
+  .type-edit:hover{color:var(--navy);}
+  .type-del:hover{color:var(--red);}
+  .card-head .actions{display:flex; gap:8px; flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -122,22 +131,16 @@
   <section class="card">
     <div class="card-head">
       <h2>ปันส่วนโสหุ้ยต่อชิ้น (ตามประเภทสินค้า) <span class="hint-text" id="countTag" style="margin:0; font-weight:400;">(0 ประเภท)</span></h2>
-      <button class="btn btn-green btn-sm" id="addBtn">+ เพิ่มประเภทสินค้า</button>
+      <div class="actions">
+        <button class="btn btn-outline btn-sm" id="addExpenseTypeBtn">+ เพิ่มค่าใช้จ่ายใหม่</button>
+        <button class="btn btn-green btn-sm" id="addBtn">+ เพิ่มประเภทสินค้า</button>
+      </div>
     </div>
     <div class="card-body">
-      <p class="hint-text">ค่าใช้จ่ายโรงงานรายเดือนหารด้วยจำนวนชิ้นที่ผลิตแต่ละประเภท — เครื่องคิดต้นทุนจะดึงค่าเหล่านี้ไปเป็นต้นทุนโสหุ้ยตามประเภทสินค้า</p>
+      <p class="hint-text">ค่าใช้จ่ายโรงงานรายเดือนหารด้วยจำนวนชิ้นที่ผลิตแต่ละประเภท — เครื่องคิดต้นทุนจะดึงค่าเหล่านี้ไปเป็นต้นทุนโสหุ้ยตามประเภทสินค้า คลิก ✎ ที่หัวคอลัมน์เพื่อแก้ไขชื่อค่าใช้จ่าย หรือ ✕ เพื่อลบคอลัมน์นั้น</p>
       <div class="table-wrap">
         <table>
-          <thead><tr>
-            <th style="width:16%">ประเภท</th>
-            <th class="num">ค่าเช่า</th>
-            <th class="num">ค่าไฟฟ้า</th>
-            <th class="num">ค่าน้ำ</th>
-            <th class="num">ค่าเผื่อ</th>
-            <th class="num">ค่าขนส่ง</th>
-            <th class="num">รวม</th>
-            <th style="width:130px"></th>
-          </tr></thead>
+          <thead id="allocHead"></thead>
           <tbody id="allocBody"></tbody>
         </table>
         <div class="empty-state" id="emptyState" style="display:none;">ยังไม่มีข้อมูลปันส่วนโสหุ้ย — กด "+ เพิ่มประเภทสินค้า" เพื่อเริ่มต้น</div>
@@ -148,21 +151,116 @@
 
 <script type="module">
 import {
-  collection, doc, getDocs, setDoc, addDoc, deleteDoc
+  collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 
 const ALLOC_COL = "overheadAllocations";
+const TYPES_COL = "overheadSettings";
+const TYPES_DOC_ID = "expenseTypes";
 const $ = (id) => document.getElementById(id);
 const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
 const fmt5 = (n) => (Math.round(n * 100000) / 100000).toFixed(5);
 
-let items = [];   // { id|null, category, rent, electric, water, allowance, shipping }
+const DEFAULT_TYPES = [
+  { key: "rent", label: "ค่าเช่า" },
+  { key: "electric", label: "ค่าไฟฟ้า" },
+  { key: "water", label: "ค่าน้ำ" },
+  { key: "allowance", label: "ค่าเผื่อ" },
+  { key: "shipping", label: "ค่าขนส่ง" }
+];
+
+let expenseTypes = [...DEFAULT_TYPES]; // { key, label } — คอลัมน์ค่าใช้จ่ายที่แก้ไข/เพิ่มได้
+let items = [];   // { id|null, category, expenses: { [key]: number } }
 let tempSeq = 0;
 
 function escapeAttr(s) {
   return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* ---------------------------- ประเภทค่าใช้จ่าย (คอลัมน์แบบแก้ไข/เพิ่มได้) ---------------------------- */
+async function loadExpenseTypes() {
+  if (!db) { expenseTypes = [...DEFAULT_TYPES]; return; }
+  try {
+    const snap = await getDoc(doc(db, TYPES_COL, TYPES_DOC_ID));
+    if (snap.exists() && Array.isArray(snap.data().types) && snap.data().types.length) {
+      expenseTypes = snap.data().types;
+    } else {
+      expenseTypes = [...DEFAULT_TYPES];
+    }
+  } catch (e) {
+    console.warn("โหลดรายการประเภทค่าใช้จ่ายไม่สำเร็จ", e);
+    expenseTypes = [...DEFAULT_TYPES];
+  }
+}
+async function saveExpenseTypes() {
+  if (!db) return;
+  try {
+    await setDoc(doc(db, TYPES_COL, TYPES_DOC_ID), { types: expenseTypes });
+  } catch (e) {
+    console.error(e);
+    alert("บันทึกรายการประเภทค่าใช้จ่ายไม่สำเร็จ: " + e.message);
+  }
+}
+
+function renderHeader() {
+  const thead = $("allocHead");
+  const typeThs = expenseTypes.map(t => `
+    <th class="num type-th" data-key="${escapeAttr(t.key)}">
+      <span class="type-label">${escapeHtml(t.label)}</span>
+      <span class="type-actions">
+        <button type="button" class="type-edit" title="แก้ไขชื่อค่าใช้จ่ายนี้">✎</button>
+        <button type="button" class="type-del" title="ลบคอลัมน์ค่าใช้จ่ายนี้">✕</button>
+      </span>
+    </th>
+  `).join("");
+  thead.innerHTML = `
+    <tr>
+      <th style="width:16%">ประเภท</th>
+      ${typeThs}
+      <th class="num">รวม</th>
+      <th style="width:130px"></th>
+    </tr>
+  `;
+  thead.querySelectorAll(".type-edit").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.closest(".type-th").dataset.key;
+      const t = expenseTypes.find(x => x.key === key);
+      if (!t) return;
+      const newLabel = prompt("แก้ไขชื่อค่าใช้จ่าย", t.label);
+      if (newLabel && newLabel.trim()) {
+        t.label = newLabel.trim();
+        saveExpenseTypes();
+        renderHeader();
+      }
+    });
+  });
+  thead.querySelectorAll(".type-del").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.closest(".type-th").dataset.key;
+      const t = expenseTypes.find(x => x.key === key);
+      if (!t) return;
+      if (!confirm(`ลบคอลัมน์ค่าใช้จ่าย "${t.label}" ใช่หรือไม่?\nข้อมูลของคอลัมน์นี้จะไม่แสดง/ไม่ถูกรวมในยอดอีกต่อไป (ข้อมูลเดิมในฐานข้อมูลจะยังไม่ถูกลบ)`)) return;
+      expenseTypes = expenseTypes.filter(x => x.key !== key);
+      saveExpenseTypes();
+      renderHeader();
+      renderTable();
+    });
+  });
+}
+
+$("addExpenseTypeBtn").addEventListener("click", () => {
+  const label = prompt("ชื่อค่าใช้จ่ายใหม่ เช่น ค่าแก๊ส, ค่าซ่อมบำรุง, ค่าแรงงานทางอ้อม");
+  if (!label || !label.trim()) return;
+  const key = "exp_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  expenseTypes.push({ key, label: label.trim() });
+  saveExpenseTypes();
+  renderHeader();
+  renderTable();
+});
 
 /* ---------------------------- load ---------------------------- */
 async function loadItems() {
@@ -170,7 +268,18 @@ async function loadItems() {
   try {
     const snap = await getDocs(collection(db, ALLOC_COL));
     items = [];
-    snap.forEach(d => items.push({ id: d.id, ...d.data() }));
+    snap.forEach(d => {
+      const data = d.data();
+      // รองรับข้อมูลเก่าที่เก็บเป็นฟิลด์ตรง ๆ (rent/electric/water/allowance/shipping) ยังไม่เคยมี expenses map
+      const expenses = data.expenses || {
+        rent: data.rent || 0,
+        electric: data.electric || 0,
+        water: data.water || 0,
+        allowance: data.allowance || 0,
+        shipping: data.shipping || 0
+      };
+      items.push({ id: d.id, category: data.category || "", expenses });
+    });
     items.sort((a, b) => (a.category || "").localeCompare(b.category || "", "th"));
   } catch (e) {
     console.warn("โหลดข้อมูลปันส่วนโสหุ้ยไม่สำเร็จ", e);
@@ -193,13 +302,13 @@ function buildRow(item) {
   tr.dataset.key = rowKey;
   if (item._isNew) tr.classList.add("dirty");
 
+  const expenseCells = expenseTypes.map(t =>
+    `<td class="num"><input type="number" step="0.0001" class="f-exp" data-key="${escapeAttr(t.key)}" value="${item.expenses[t.key] ?? 0}"></td>`
+  ).join("");
+
   tr.innerHTML = `
     <td><input type="text" class="f-category" value="${escapeAttr(item.category || "")}" placeholder="เช่น ของสด, แช่แข็ง"></td>
-    <td class="num"><input type="number" step="0.0001" class="f-rent" value="${item.rent ?? 0}"></td>
-    <td class="num"><input type="number" step="0.0001" class="f-electric" value="${item.electric ?? 0}"></td>
-    <td class="num"><input type="number" step="0.0001" class="f-water" value="${item.water ?? 0}"></td>
-    <td class="num"><input type="number" step="0.0001" class="f-allowance" value="${item.allowance ?? 0}"></td>
-    <td class="num"><input type="number" step="0.0001" class="f-shipping" value="${item.shipping ?? 0}"></td>
+    ${expenseCells}
     <td class="num"><input type="text" class="f-total" value="0.0000" readonly></td>
     <td>
       <div class="row-actions">
@@ -210,11 +319,8 @@ function buildRow(item) {
   `;
 
   const recalc = () => {
-    const total = num(tr.querySelector(".f-rent").value)
-      + num(tr.querySelector(".f-electric").value)
-      + num(tr.querySelector(".f-water").value)
-      + num(tr.querySelector(".f-allowance").value)
-      + num(tr.querySelector(".f-shipping").value);
+    let total = 0;
+    tr.querySelectorAll(".f-exp").forEach(inp => { total += num(inp.value); });
     tr.querySelector(".f-total").value = fmt5(total);
   };
 
@@ -232,13 +338,11 @@ function buildRow(item) {
 
 /* ---------------------------- save / delete ---------------------------- */
 async function saveRow(item, tr) {
+  const expenses = {};
+  tr.querySelectorAll(".f-exp").forEach(inp => { expenses[inp.dataset.key] = num(inp.value); });
   const data = {
     category: tr.querySelector(".f-category").value.trim(),
-    rent: num(tr.querySelector(".f-rent").value),
-    electric: num(tr.querySelector(".f-electric").value),
-    water: num(tr.querySelector(".f-water").value),
-    allowance: num(tr.querySelector(".f-allowance").value),
-    shipping: num(tr.querySelector(".f-shipping").value)
+    expenses
   };
 
   if (!data.category) {
@@ -298,7 +402,7 @@ async function deleteRow(item, tr) {
 $("addBtn").addEventListener("click", () => {
   const newItem = {
     id: null, _tempKey: "new" + (++tempSeq), _isNew: true,
-    category: "", rent: 0, electric: 0, water: 0, allowance: 0, shipping: 0
+    category: "", expenses: {}
   };
   items.unshift(newItem);
   renderTable();
@@ -306,7 +410,12 @@ $("addBtn").addEventListener("click", () => {
   if (firstInput) firstInput.focus();
 });
 
-loadItems();
+async function init() {
+  await loadExpenseTypes();
+  renderHeader();
+  await loadItems();
+}
+init();
 </script>
 
 </body>
