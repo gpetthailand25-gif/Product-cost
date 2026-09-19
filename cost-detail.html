@@ -740,8 +740,8 @@
     <div class="card-head">
       <h2>🏭 โสหุ้ยการผลิต</h2>
       <div style="display:flex; align-items:center; gap:10px;">
-        <span class="hint" id="ohSourceTag">ต่อชิ้น — เลือกประเภทสินค้าแล้วกดดึงจากตาราง</span>
-        <button class="btn btn-outline btn-sm" id="pullOverheadBtn">↻ ดึงจากตาราง</button>
+        <span class="hint" id="ohSourceTag">ต่อชิ้น — เลือกประเภทสินค้าแล้วจะดึงค่าโสหุ้ยให้อัตโนมัติ</span>
+        <button class="btn btn-outline btn-sm" id="pullOverheadBtn" title="บังคับดึงค่าล่าสุดจากตารางปันส่วนโสหุ้ยมาแทนที่ตัวเลขปัจจุบันทั้งหมด">🔄 ดึงจากตาราง</button>
       </div>
     </div>
     <div class="card-body">
@@ -928,24 +928,29 @@ async function loadOverheadAllocations() {
     console.warn("โหลดปันส่วนโสหุ้ยไม่สำเร็จ", e);
   }
 }
-function applyOverheadFromCategory(showMissingAlert) {
+function applyOverheadFromCategory(opts) {
+  opts = opts || {};
+  const silent = !!opts.silent;   // true = ไม่เด้ง alert (ใช้ตอนโหลดหน้า/เปลี่ยนประเภทแบบอัตโนมัติ)
+  const force = !!opts.force;     // true = เขียนทับแม้มีค่าที่กรอก/ตั้งเองไว้แล้ว (ใช้ตอนกดปุ่มเอง หรือเปลี่ยนประเภทสินค้า)
   const cat = $("f_category").value;
   if (!cat) {
-    if (showMissingAlert) alert("กรุณาเลือกประเภทสินค้าก่อน");
-    $("ohSourceTag").textContent = "ต่อชิ้น — เลือกประเภทสินค้าแล้วกดดึงจากตาราง";
+    $("ohSourceTag").textContent = "ต่อชิ้น — เลือกประเภทสินค้าแล้วจะดึงค่าโสหุ้ยให้อัตโนมัติ";
     return;
   }
   const row = overheadCache.find(o => o.category === cat);
   if (!row) {
-    if (showMissingAlert) alert(`ยังไม่มีข้อมูลปันส่วนโสหุ้ยสำหรับประเภท "${cat}" — ไปตั้งค่าที่หน้าปันส่วนโสหุ้ยก่อน`);
+    if (!silent) alert(`ยังไม่มีข้อมูลปันส่วนโสหุ้ยสำหรับประเภท "${cat}" — ไปตั้งค่าที่หน้าปันส่วนโสหุ้ยก่อน`);
     $("ohSourceTag").textContent = `ต่อชิ้น — ไม่พบข้อมูลปันส่วนโสหุ้ยของ "${cat}"`;
     return;
   }
   const currentIds = ["oh_electric", "oh_water", "oh_allowance", "oh_rent", "oh_shipping"];
   const hasExisting = currentIds.some(id => num($(id).value) !== 0);
-  if (hasExisting) {
-    if (!confirm(`ดึงค่าโสหุ้ยจากตาราง "${cat}" มาแทนที่ตัวเลขปัจจุบันหรือไม่?`)) return;
+  if (hasExisting && !force) {
+    // มีค่าที่ตั้งเองไว้อยู่แล้วสำหรับสินค้านี้โดยเฉพาะ และนี่ไม่ใช่การกดดึงเอง/เปลี่ยนประเภท -> ไม่เขียนทับอัตโนมัติ
+    $("ohSourceTag").textContent = `ต่อชิ้น — ประเภท: ${cat} (ใช้ค่าที่ตั้งเองไว้ — กด "🔄 ดึงจากตาราง" เพื่ออัปเดตให้ตรงกับตารางล่าสุด)`;
+    return;
   }
+
   // รองรับข้อมูลปันส่วนโสหุ้ยรูปแบบใหม่ (expenses: {key:value}) ที่แก้ไข/เพิ่มประเภทค่าใช้จ่ายเองได้
   // และข้อมูลรูปแบบเก่า (ฟิลด์ตรง ๆ rent/electric/water/allowance/shipping)
   const exp = row.expenses || {
@@ -962,8 +967,8 @@ function applyOverheadFromCategory(showMissingAlert) {
   $("oh_rent").value = num(exp.rent);
   $("oh_shipping").value = num(exp.shipping);
   $("ohSourceTag").textContent = extra > 0
-    ? `ต่อชิ้น — ดึงจากปันส่วนโสหุ้ย: ${cat} (รวมค่าใช้จ่ายประเภทอื่นที่เพิ่มไว้ ${fmt(extra)} บาท เข้าช่อง "ค่าเผื่อ")`
-    : `ต่อชิ้น — ดึงจากปันส่วนโสหุ้ย: ${cat}`;
+    ? `ต่อชิ้น — ดึงจากปันส่วนโสหุ้ยอัตโนมัติ: ${cat} (รวมค่าใช้จ่ายประเภทอื่นที่เพิ่มไว้ ${fmt(extra)} บาท เข้าช่อง "ค่าเผื่อ")`
+    : `ต่อชิ้น — ดึงจากปันส่วนโสหุ้ยอัตโนมัติ: ${cat}`;
   calcSummary();
 }
 
@@ -1950,8 +1955,8 @@ $("pullNpdBtn").addEventListener("click", () => {
   calcSummary();
 });
 
-$("pullOverheadBtn").addEventListener("click", () => applyOverheadFromCategory(true));
-$("f_category").addEventListener("change", () => applyOverheadFromCategory(false));
+$("pullOverheadBtn").addEventListener("click", () => applyOverheadFromCategory({ silent: false, force: true }));
+$("f_category").addEventListener("change", () => applyOverheadFromCategory({ silent: true, force: true }));
 
 /* ---------------------------- save / load ---------------------------- */
 function collectData() {
@@ -2280,7 +2285,12 @@ async function loadExisting() {
   $("oh_allowance").value = (oh.allowance ?? oh.gas) || 0;
   $("oh_rent").value = oh.rent || 0;
   $("oh_shipping").value = oh.shipping || 0;
-  if (d.category) $("ohSourceTag").textContent = `ต่อชิ้น — ประเภท: ${d.category}`;
+  if (d.category) {
+    $("ohSourceTag").textContent = `ต่อชิ้น — ประเภท: ${d.category}`;
+    // อัปเดตโสหุ้ยการผลิตให้อัตโนมัติจากตารางปันส่วนโสหุ้ยล่าสุด — เติมให้เฉพาะตอนที่ยังไม่เคยตั้งค่าเอง (ทุกช่องเป็น 0)
+    // เพื่อไม่ให้ไปเขียนทับตัวเลขที่เคยปรับเฉพาะสินค้านี้ไว้ ถ้าต้องการอัปเดตให้ตรงตารางเสมอ กด "🔄 ดึงจากตาราง" ได้ทุกเมื่อ
+    applyOverheadFromCategory({ silent: true, force: false });
+  }
 
   (d.components || []).forEach(c => {
     const comp = makeComponent();
