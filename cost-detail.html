@@ -1558,8 +1558,9 @@ function calcSummary() {
   $("s_profit_a").textContent = fmt(profitA);
   $("s_profit_b").textContent = profitB !== null ? fmt(profitB) : "-";
 
-  const marginA = netPrice > 0 ? (profitA / netPrice) * 100 : 0;
-  const marginB = (profitB !== null && netPrice > 0) ? (profitB / netPrice) * 100 : null;
+  // Gross Margin % = กำไร (หลังหักต้นทุน/ค่าห้าง/DC/โปรโมชั่นแล้ว) หารด้วย "ราคาขาย" ตั้งต้น (ไม่ใช่ราคาสุทธิ)
+  const marginA = sellPrice > 0 ? (profitA / sellPrice) * 100 : 0;
+  const marginB = (profitB !== null && sellPrice > 0) ? (profitB / sellPrice) * 100 : null;
   renderMarkupPill("s_markup_a", marginA);
   renderMarkupPill("s_markup_b", marginB);
 
