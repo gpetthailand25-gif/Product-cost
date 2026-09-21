@@ -336,18 +336,26 @@ function computeActualCost(d, itemized) {
   if (std <= 0 || actual === 0) return null;
 
   const lossMap = d.lossIncludeMap || {};
-  const split = (items, mapObj) => {
+  const r2 = (n) => Math.round(n * 100) / 100;
+  // หมายเหตุสำคัญ: หน้ารายละเอียดต้นทุนคำนวณ Actual Cost โดยอ่านต้นทุนของแต่ละรายการ (วัตถุดิบ/บรรจุภัณฑ์/ค่าแรง)
+  // จากตัวเลขที่ "ปัดเศษ 2 ตำแหน่งแล้ว" ที่แสดงผลบนหน้าจอ (ไม่ใช่ค่าทศนิยมเต็ม) ก่อนจะนำไปคูณ/หารตามสัดส่วนผลผลิต
+  // จึงต้องปัดเศษต่อรายการแบบเดียวกันตรงนี้ ไม่เช่นนั้นตัวเลขจะเพี้ยนไปเล็กน้อยจากหน้ารายละเอียดต้นทุน
+  // (ค่าโสหุ้ยไม่ต้องปัด เพราะอ่านจากช่องกรอกตรง ๆ ไม่ผ่านการปัดเศษแสดงผล)
+  const split = (items, mapObj, round) => {
     mapObj = mapObj || {};
     let incurred = 0, notIncurred = 0;
-    items.forEach(it => { if (mapObj[it.id] !== false) incurred += it.cost; else notIncurred += it.cost; });
+    items.forEach(it => {
+      const c = round ? r2(it.cost) : it.cost;
+      if (mapObj[it.id] !== false) incurred += c; else notIncurred += c;
+    });
     return { incurred, notIncurred };
   };
   const scaleUp = (s) => (s.incurred * std / actual) + s.notIncurred;
 
-  const aRaw = scaleUp(split(itemized.rawItems, lossMap.comp));
-  const aPack = scaleUp(split(itemized.packItems, lossMap.pack));
-  const aLabor = scaleUp(split(itemized.laborItems, lossMap.labor));
-  const aOh = scaleUp(split(itemized.ohItems, lossMap.oh));
+  const aRaw = scaleUp(split(itemized.rawItems, lossMap.comp, true));
+  const aPack = scaleUp(split(itemized.packItems, lossMap.pack, true));
+  const aLabor = scaleUp(split(itemized.laborItems, lossMap.labor, true));
+  const aOh = scaleUp(split(itemized.ohItems, lossMap.oh, false));
   return { raw: aRaw, pack: aPack, labor: aLabor, overhead: aOh, total: aRaw + aPack + aLabor + aOh };
 }
 
