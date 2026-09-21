@@ -800,6 +800,8 @@ let currentDocId = new URLSearchParams(location.search).get("id") || null;
 let productionBatches = []; // ประวัติ Loss Analysis
 let lastStandardCostA = 0; // cache ต้นทุน/ชิ้น (รวมเช่า+ขนส่ง) ล่าสุดจาก calcSummary
 let lastComponentCosts = { raw: 0, pack: 0, labor: 0, oh: 0 };
+let lastActualCost = null; // cache Actual Cost (ตามผลผลิตจริง) ต่อชิ้น ล่าสุด — null ถ้ายังไม่มีข้อมูล Production
+let lastActualComponents = null; // { raw, pack, labor, oh } ของ Actual Cost ต่อชิ้น
 let npdSavedAt = null; // วันที่กรอกต้นทุน NPD ครั้งแรก (คงไว้แม้จะแก้ไขค่าในภายหลัง)
 let lossIncludeMap = { comp: {}, pack: {}, labor: {}, oh: { electric: true, water: true, allowance: true, rent: true, shipping: true } };
 let OH_KEYS = [
@@ -1479,7 +1481,6 @@ function calcSummary() {
   // cache สำหรับ Production Yield & Actual Cost (ใช้ totalA เป็น Standard Cost อ้างอิง ต่อชิ้น)
   lastStandardCostA = totalA;
   lastComponentCosts = { raw, pack, labor, oh: oh.withRent };
-  renderNpdCompare();
 
   // sync รายการ checkbox ต้นทุนที่เกิดขึ้นแล้วก่อนจุดสูญเสีย ให้ตรงกับส่วนประกอบ/บรรจุภัณฑ์/แผนกล่าสุด
   if (typeof renderLossComponentCheckboxes === "function") renderLossComponentCheckboxes();
@@ -1494,9 +1495,15 @@ function calcSummary() {
     $("s_labor_b").textContent = fmt(y.actualComponents.labor * qtyPerUnit);
     $("s_oh_b").textContent = fmt(y.actualComponents.oh * qtyPerUnit);
     $("s_total_b").textContent = fmt(y.actualCost * qtyPerUnit);
+    // cache Actual Cost (ตามผลผลิตจริง) ไว้ใช้เป็นค่า "ต้นทุนจริง (ปัจจุบัน)" ในตารางเทียบ NPD ด้านล่าง
+    lastActualComponents = { raw: y.actualComponents.raw, pack: y.actualComponents.pack, labor: y.actualComponents.labor, oh: y.actualComponents.oh };
+    lastActualCost = y.actualCost;
   } else {
     ["s_raw_b", "s_pack_b", "s_labor_b", "s_oh_b", "s_total_b"].forEach(id => $(id).textContent = "-");
+    lastActualComponents = null;
+    lastActualCost = null;
   }
+  renderNpdCompare();
 
   const sellPrice = num($("f_sellprice").value);
   const termId = $("f_tradeterm").value;
@@ -1600,7 +1607,12 @@ function getNpdInputs() {
 }
 function renderNpdCompare() {
   const qty = num($("f_qtyPerUnit").value) || 1;
-  const now = { raw: lastComponentCosts.raw, pack: lastComponentCosts.pack, labor: lastComponentCosts.labor, oh: lastComponentCosts.oh, other: 0, total: lastStandardCostA };
+  // ใช้ Actual Cost (ตามผลผลิตจริง) เป็น "ต้นทุนจริง (ปัจจุบัน)" ถ้ามีข้อมูล Production Yield แล้ว
+  // ถ้ายังไม่มี ให้ใช้ต้นทุน Standard (ตามสูตรปัจจุบัน) ไปก่อนชั่วคราว
+  const usingActual = !!lastActualComponents && lastActualCost !== null;
+  const nowSource = usingActual ? lastActualComponents : lastComponentCosts;
+  const nowTotal = usingActual ? lastActualCost : lastStandardCostA;
+  const now = { raw: nowSource.raw, pack: nowSource.pack, labor: nowSource.labor, oh: nowSource.oh, other: 0, total: nowTotal };
   const keys = ["raw", "pack", "labor", "oh", "other", "total"];
   const npdVals = getNpdInputs();
   const npdTotal = npdVals.raw + npdVals.pack + npdVals.labor + npdVals.oh + npdVals.other;
@@ -1621,7 +1633,9 @@ function renderNpdCompare() {
     return;
   }
   const savedDate = npdSavedAt ? new Date(npdSavedAt).toLocaleDateString("th-TH", { year: "numeric", month: "short", day: "numeric" }) : "-";
-  $("npdHint").textContent = `กรอกไว้เมื่อ ${savedDate}`;
+  $("npdHint").textContent = usingActual
+    ? `กรอกไว้เมื่อ ${savedDate} — เทียบกับ Actual Cost (ตามผลผลิตจริง)`
+    : `กรอกไว้เมื่อ ${savedDate} — ยังไม่มีข้อมูลผลผลิตจริง ใช้ต้นทุนตามสูตรเทียบไปก่อน`;
   keys.forEach(k => {
     const npdVal = (npdMap[k] || 0) * qty;
     const nowVal = now[k] * qty;
@@ -2142,17 +2156,21 @@ $("exportExcelBtn").addEventListener("click", () => {
   infoRows.push(["Remark", $("f_lossRemark").value]);
 
   infoRows.push([]);
-  infoRows.push(["เทียบต้นทุน NPD กับต้นทุนจริง", "ต้นทุน NPD", "ต้นทุนจริง (ปัจจุบัน)", "ผลต่าง"]);
+  infoRows.push(["เทียบต้นทุน NPD กับต้นทุนจริง", "ต้นทุน NPD", y && y.actualCost !== null && y.actualCost !== undefined ? "ต้นทุนจริง (Actual Cost)" : "ต้นทุนจริง (Standard — ยังไม่มีข้อมูลผลผลิตจริง)", "ผลต่าง"]);
   const npdXl = getNpdInputs();
   const npdXlTotal = npdXl.raw + npdXl.pack + npdXl.labor + npdXl.oh + npdXl.other;
+  const hasActualXl = y && y.actualCost !== null && y.actualCost !== undefined;
+  const nowXl = hasActualXl
+    ? { raw: y.actualComponents.raw, pack: y.actualComponents.pack, labor: y.actualComponents.labor, oh: y.actualComponents.oh, total: y.actualCost }
+    : { raw: s.raw, pack: s.pack, labor: s.labor, oh: s.overheadWithRent, total: s.totalA };
   if (npdXlTotal > 0) {
     const rows4 = [
-      ["วัตถุดิบ", npdXl.raw, s.raw],
-      ["บรรจุภัณฑ์", npdXl.pack, s.pack],
-      ["ค่าแรง", npdXl.labor, s.labor],
-      ["โสหุ้ยการผลิต", npdXl.oh, s.overheadWithRent],
+      ["วัตถุดิบ", npdXl.raw, nowXl.raw],
+      ["บรรจุภัณฑ์", npdXl.pack, nowXl.pack],
+      ["ค่าแรง", npdXl.labor, nowXl.labor],
+      ["โสหุ้ยการผลิต", npdXl.oh, nowXl.oh],
       ["ค่าใช้จ่ายอื่น", npdXl.other, 0],
-      ["รวมต้นทุนต่อชิ้น", npdXlTotal, s.totalA]
+      ["รวมต้นทุนต่อชิ้น", npdXlTotal, nowXl.total]
     ];
     rows4.forEach(([label, a, b]) => infoRows.push([label, round2(a), round2(b), round2(b - a)]));
     infoRows.push(["กรอกต้นทุน NPD ไว้เมื่อ", npdSavedAt ? new Date(npdSavedAt).toLocaleDateString("th-TH") : ""]);
