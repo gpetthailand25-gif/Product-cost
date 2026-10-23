@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สรุป Mg. รายห้าง — ระบบต้นทุน NPD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1e3a5f;
+    --navy-dark:#152944;
+    --gray-bg:#f4f6f8;
+    --gray-border:#dfe4ea;
+    --gray-text:#5b6672;
+    --green:#1e8e5a;
+    --green-dark:#166b45;
+    --red:#c0392b;
+    --red-dark:#a3311f;
+    --amber:#b7791f;
+    --amber-bg:#fdf3e0;
+    --gray-badge-bg:#eceff2;
+    --white:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Sarabun',sans-serif;
+    background:var(--gray-bg);
+    color:#1f2937;
+    font-variant-numeric: tabular-nums;
+  }
+  header.topbar{
+    background:var(--navy);
+    color:#fff;
+    padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:8px;
+  }
+  header.topbar h1{font-size:17px; font-weight:600; margin:0; display:flex; align-items:center; gap:8px;}
+  header.topbar .actions{display:flex; gap:8px; flex-wrap:wrap;}
+  nav.subnav{
+    background:var(--navy-dark);
+    padding:0 24px;
+    display:flex; gap:2px; flex-wrap:wrap;
+  }
+  nav.subnav a{
+    color:rgba(255,255,255,0.75);
+    text-decoration:none;
+    font-size:13px;
+    padding:10px 14px;
+    display:inline-block;
+    border-bottom:2px solid transparent;
+  }
+  nav.subnav a.active{color:#fff; border-bottom-color:#fff; font-weight:600;}
+  nav.subnav a:hover{color:#fff;}
+
+  .btn{
+    border:none; border-radius:6px; padding:8px 16px;
+    font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer;
+    transition:filter .15s ease; white-space:nowrap; text-decoration:none; display:inline-block;
+  }
+  .btn:hover{filter:brightness(0.94);}
+  .btn-green{background:var(--green); color:#fff;}
+  .btn-green:hover{background:var(--green-dark);}
+  .btn-red{background:var(--red); color:#fff;}
+  .btn-red:hover{background:var(--red-dark);}
+  .btn-ghost{background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.35);}
+  .btn-outline{background:#fff; color:var(--navy); border:1px solid var(--gray-border);}
+  .btn-outline:hover{background:#f0f3f6;}
+  .btn-sm{padding:5px 11px; font-size:12.5px;}
+
+  main{max-width:1320px; margin:0 auto; padding:20px 24px 80px;}
+
+  .stat-row{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px;}
+  @media(max-width:820px){ .stat-row{grid-template-columns:repeat(2,1fr);} }
+  .stat-card{
+    background:#fff; border:1px solid var(--gray-border); border-radius:10px; padding:14px 16px;
+  }
+  .stat-card .label{font-size:12px; color:var(--gray-text); margin-bottom:4px;}
+  .stat-card .value{font-size:21px; font-weight:700; color:var(--navy);}
+
+  .card{background:var(--white); border:1px solid var(--gray-border); border-radius:10px; overflow:hidden;}
+  .card-head{
+    padding:14px 18px; border-bottom:1px solid var(--gray-border);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  .card-head h2{font-size:15px; margin:0; color:var(--navy); font-weight:600; display:flex; align-items:center; gap:8px;}
+  .card-body{padding:16px 18px;}
+
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
+  .search-wrap{position:relative; flex:1; min-width:220px;}
+  .search-wrap input{
+    width:100%; padding:9px 12px 9px 32px; border:1px solid var(--gray-border);
+    border-radius:8px; font-family:inherit; font-size:13.5px;
+  }
+  .search-wrap::before{content:"🔎"; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; opacity:.6;}
+  .tabs{display:flex; gap:6px; flex-wrap:wrap;}
+  .tab{
+    padding:7px 14px; border-radius:20px; border:1px solid var(--gray-border);
+    background:#fff; font-size:12.5px; font-weight:600; color:var(--gray-text); cursor:pointer; white-space:nowrap;
+  }
+  .tab.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.02em;
+    color:var(--gray-text); border-bottom:1px solid var(--gray-border);
+    padding:8px 8px; font-weight:600; white-space:nowrap;
+  }
+  tbody td{padding:7px 8px; border-bottom:1px solid #eef1f4; vertical-align:middle;}
+  tbody tr:hover{background:#fafbfc;}
+  tbody tr.dirty{background:#fff9ec;}
+  .num{text-align:right;}
+  .num input{text-align:right;}
+  .table-wrap{overflow-x:auto;}
+  td input{
+    width:100%; padding:6px 7px; border:1px solid var(--gray-border);
+    border-radius:6px; font-family:inherit; font-size:12.5px; background:#fff;
+  }
+  td input:focus{outline:2px solid var(--navy); outline-offset:0; border-color:var(--navy);}
+  .product-name{font-weight:600; color:#1f2937;}
+  .product-code{font-size:11.5px; color:var(--gray-text);}
+  .pill{display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:600; white-space:nowrap;}
+  .pill-gray{background:var(--gray-badge-bg); color:var(--gray-text);}
+  .pill-green{background:#e7f6ee; color:var(--green-dark);}
+  .pill-amber{background:var(--amber-bg); color:var(--amber);}
+  .pill-red{background:#fbeceb; color:var(--red-dark);}
+  .row-actions{display:flex; gap:6px; white-space:nowrap;}
+  .empty-state{padding:50px 20px; text-align:center; color:var(--gray-text); font-size:13.5px;}
+  .muted{color:var(--gray-text);}
+  .page-header-sticky{position:sticky; top:0; z-index:100;}
+
+  .diff-up{color:var(--red-dark); font-weight:600;}
+  .diff-down{color:var(--green-dark); font-weight:600;}
+  .diff-flat{color:var(--gray-text); font-weight:600;}
+  .diff-toggle{border:none; cursor:pointer; font-family:inherit;}
+  .detail-row td{background:#fafbfc; padding:10px 16px 14px;}
+  .detail-table{width:100%; border-collapse:collapse; font-size:12px; max-width:520px;}
+  .detail-table th{text-align:right; font-size:10.5px; color:var(--gray-text); padding:4px 8px; border-bottom:1px solid var(--gray-border);}
+  .detail-table th:first-child{text-align:left;}
+  .detail-table td{padding:4px 8px; border-bottom:1px solid #eef1f4;}
+  .detail-table tr:last-child td{border-bottom:none; border-top:1px solid var(--gray-border);}
+  .detail-note{font-size:11.5px; color:var(--gray-text); margin-bottom:6px;}
+
+  .stat-row.three{grid-template-columns:repeat(3,1fr);}
+  @media(max-width:820px){ .stat-row.three{grid-template-columns:repeat(1,1fr);} }
+  .group-card{margin-bottom:18px;}
+  .group-card .card-head{flex-wrap:wrap; gap:8px;}
+  .group-sub{font-size:12px; color:var(--gray-text); font-weight:400;}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media(max-width:980px){ .two-col{grid-template-columns:1fr;} }
+  .rank-title{font-size:13px; font-weight:600; margin:0 0 8px;}
+  .rank-title.hi{color:var(--green-dark);}
+  .rank-title.lo{color:var(--red-dark);}
+  .rank-table td, .rank-table th{padding:7px 8px;}
+  .rank-no{width:30px; color:var(--gray-text);}
+  tr.clickable{cursor:pointer;}
+  tr.clickable:hover td{background:#f4f8fc;}
+  .note-line{font-size:11.5px; color:var(--gray-text); margin-top:8px;}
+  select.filter{padding:8px 10px; border:1px solid var(--gray-border); border-radius:8px; font-family:inherit; font-size:13px; background:#fff; min-width:200px;}
+
+  .stat-row.four{grid-template-columns:repeat(4,1fr);}
+  @media(max-width:820px){ .stat-row.four{grid-template-columns:repeat(2,1fr);} }
+  .dash-bar-list{max-height:340px; overflow-y:auto;}
+  .bar-row{display:grid; grid-template-columns:minmax(150px,1.2fr) 3fr 86px; gap:12px; align-items:center; padding:6px 8px; border-radius:8px; cursor:pointer;}
+  .bar-row:hover{background:#f4f8fc;}
+  .bar-row.sel{background:#e8f0fa; outline:1px solid var(--navy);}
+  .bar-label{font-size:13px; font-weight:600; color:#1f2937; line-height:1.25;}
+  .bar-label small{display:block; font-weight:400; color:var(--gray-text); font-size:11px;}
+  .bar-track{height:14px; background:#eef1f4; border-radius:7px; overflow:hidden;}
+  .bar-fill{height:100%; border-radius:7px;}
+  .bar-fill.pos{background:var(--green);}
+  .bar-fill.neg{background:var(--red);}
+  .bar-val{text-align:right; font-size:13px; font-weight:700;}
+  @media(max-width:700px){ .bar-row{grid-template-columns:1fr 70px;} .bar-track{grid-column:1 / -1; order:3;} }
+  .sel-chip{display:inline-flex; gap:6px; align-items:center; background:#e8f0fa; color:var(--navy); border-radius:20px; padding:3px 10px; font-size:12px; font-weight:600;}
+  .sel-chip button{border:none; background:none; cursor:pointer; color:var(--navy); font-size:13px; padding:0;}
+</style>
+</head>
+<body>
+
+<div class="page-header-sticky">
+<header class="topbar">
+  <h1>🏬 สรุป Mg. รายห้าง</h1>
+  <div class="actions">
+    <a class="btn btn-ghost btn-sm" href="materials.html">คลังวัตถุดิบ/บรรจุภัณฑ์</a>
+    <a class="btn btn-ghost btn-sm" href="dashboard.html">สรุปรายการต้นทุน</a>
+  </div>
+</header>
+<nav class="subnav">
+  <a href="dashboard.html">สรุปรายการต้นทุน</a>
+  <a href="cost-detail.html">รายละเอียดต้นทุน</a>
+  <a href="materials.html">คลังวัตถุดิบ/บรรจุภัณฑ์</a>
+  <a href="trade-terms.html">เงื่อนไขห้าง</a>
+  <a href="#" class="active">สรุป Mg. รายห้าง</a>
+  <a href="overhead-allocation.html">ปันส่วนโสหุ้ย</a>
+  <a href="recipes.html">คลังสูตร</a>
+  <a href="labor-steps.html">คลังขั้นตอนการทำ</a>
+</nav>
+</div>
+
+<main>
+  <div class="stat-row four">
+    <div class="stat-card"><div class="label">สินค้าที่ขายอยู่ (คิด Mg. ได้)</div><div class="value" id="statCount">0</div><div class="muted" id="statSkipped" style="font-size:11px;"></div></div>
+    <div class="stat-card"><div class="label">เฉลี่ย Mg.</div><div class="value" id="statAvg">-</div></div>
+    <div class="stat-card"><div class="label">Mg. สูงสุด</div><div class="value" id="statMax">-</div></div>
+    <div class="stat-card"><div class="label">Mg. ต่ำสุด</div><div class="value" id="statMin">-</div></div>
+  </div>
+
+  <section class="card" style="margin-bottom:18px;">
+    <div class="card-head">
+      <h2>เฉลี่ย Mg. แยกตามห้าง/รหัส <span class="muted" style="font-weight:400; font-size:12px;">(เฉพาะสินค้าที่ขายอยู่ · คลิกแถวเพื่อดูเฉพาะห้างนั้น)</span></h2>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span class="sel-chip" id="selChip" style="display:none;"><span id="selChipText"></span><button type="button" id="clearSel" title="ดูทุกห้าง">✕</button></span>
+        <select class="filter" id="groupFilter"></select>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="dash-bar-list" id="barList"></div>
+      <div class="empty-state" id="emptyState" style="display:none;">ยังไม่มีสินค้าที่ขายอยู่และคิด Mg. ได้</div>
+    </div>
+  </section>
+
+  <div class="two-col">
+    <section class="card">
+      <div class="card-head"><h2 style="color:var(--green-dark);">▲ Top 10 Mg. สูงสุด <span class="muted" style="font-weight:400; font-size:12px;" id="scopeHi"></span></h2></div>
+      <div class="card-body" id="topHi"></div>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2 style="color:var(--red-dark);">▼ Top 10 Mg. ต่ำสุด <span class="muted" style="font-weight:400; font-size:12px;" id="scopeLo"></span></h2></div>
+      <div class="card-body" id="topLo"></div>
+    </section>
+  </div>
+  <p class="note-line">Mg. = มาร์จิ้น % เดียวกับหน้าสรุปรายการต้นทุน (หลังหักเงื่อนไขห้าง/DC/โปรโมชั่น เทียบต้นทุนจริง) · ไม่รวมสินค้ายกเลิกขาย และสินค้าที่ยังไม่มีสูตรหรือราคาขาย</p>
+</main>
+
+<script type="module">
+import {
+  collection, getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from "./firebase-config.js";
+
+const PRODUCTS_COL = "products";
+const TERMS_COL = "tradeTerms";
+const $ = (id) => document.getElementById(id);
+const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const fmt = (n) => (Math.round(n * 100) / 100).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function escapeHtml(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+let products = [];
+let termsCache = [];
+let groups = [];
+
+function dcRatePerBox(term, boxName, destName) {
+  const dc = term.dcCost || {};
+  const fallback = num(dc.dcDispatchFeePerCase);
+  const rt = dc.rateTable;
+  if (!rt || !rt.dcs || !rt.boxes) return fallback;
+  const box = rt.boxes.find(b => b.name === boxName);
+  if (!box) return fallback;
+  let sumRV = 0, sumV = 0, sumR = 0, n = 0;
+  rt.dcs.forEach(d => {
+    const r = box.rates ? box.rates[d.id] : undefined;
+    if (r === undefined || r === null) return;          // เว้นว่าง = ไม่ส่ง DC นั้น
+    if (destName && d.name !== destName) return;        // เลือก DC ปลายทางเฉพาะ
+    const v = num(d.volume);
+    sumRV += num(r) * v; sumV += v; sumR += num(r); n++;
+  });
+  if (!n) return fallback;
+  return sumV > 0 ? sumRV / sumV : sumR / n;            // เฉลี่ยถ่วงน้ำหนักตามปริมาณส่ง
+}
+
+async function loadTradeTerms() {
+  if (!db) return;
+  try {
+    const snap = await getDocs(collection(db, TERMS_COL));
+    termsCache = [];
+    snap.forEach(d => termsCache.push({ id: d.id, ...d.data() }));
+  } catch (e) { console.warn("โหลดเงื่อนไขห้างไม่สำเร็จ", e); }
+}
+function findTerm(id) { return id ? termsCache.find(t => t.id === id) : null; }
+
+async function loadProducts() {
+  if (!db) return;
+  try {
+    const snap = await getDocs(collection(db, PRODUCTS_COL));
+    products = [];
+    snap.forEach(d => products.push({ id: d.id, ...d.data() }));
+  } catch (e) { console.warn("โหลดรายการสินค้าไม่สำเร็จ", e); }
+}
+
+/* ---------------------------- cost calc (mirrors cost-detail.html) ---------------------------- */
+function computeNetPrice(d, sellingPrice) {
+  let netPrice = sellingPrice;
+  const term = findTerm(d.tradeTermId);
+  if (term) {
+    const packPerBox = num(d.packPerBox);
+    const deductPct = (term.deductItems || [])
+      .filter(x => (x.unit || "percent") === "percent")
+      .reduce((s, x) => s + num(x.value ?? x.percent), 0);
+    const deductBaht = (term.deductItems || [])
+      .filter(x => x.unit === "baht")
+      .reduce((s, x) => s + num(x.value), 0);
+    const deductAmount = sellingPrice * (deductPct / 100) + deductBaht;
+    const dc = term.dcCost || {};
+    const dcCost = packPerBox > 0 ? (num(dc.basketFeePerUnit) + dcRatePerBox(term, d.dcBox, d.dcDest)) / packPerBox : 0;
+    netPrice -= (deductAmount + dcCost);
+  }
+  const promoValue = num(d.promoValue);
+  if (promoValue) {
+    const promoDeduct = d.promoUnit === "baht" ? promoValue : sellingPrice * (promoValue / 100);
+    netPrice -= promoDeduct;
+  }
+  return netPrice;
+}
+
+function computeItemizedCost(d) {
+  const rawItems = (d.components || []).map((comp, idx) => {
+    let money = 0, weightUsed = 0;
+    (comp.ingredients || []).forEach(ing => {
+      const ppg = ing.weightG > 0 ? ing.price / ing.weightG : 0;
+      money += ppg * (ing.amountG || 0);
+      weightUsed += (ing.amountG || 0);
+    });
+    const net = weightUsed * (1 - (comp.wastePercent || 0) / 100);
+    const costPerGram = net > 0 ? money / net : 0;
+    return { id: String(idx), cost: costPerGram * (comp.gramsPerPiece || 0) };
+  });
+  const packItems = (d.packaging || []).map((p, idx) => {
+    const ppu = p.packQty > 0 ? p.price / p.packQty : 0;
+    return { id: String(idx), cost: ppu * (p.amountUsed || 0) };
+  });
+  const rate = d.laborRatePerMinute || 0.78;
+  const laborGroupsArr = (d.laborGroups && d.laborGroups.length)
+    ? d.laborGroups
+    : (d.laborSteps && d.laborSteps.length ? [{ name: "ทั่วไป", steps: d.laborSteps }] : []);
+  const laborItems = laborGroupsArr.map((g, idx) => {
+    const cost = (g.steps || []).reduce((sum, s) => sum + (s.unitsPerBatch > 0 ? (s.minutes * s.headcount * rate) / s.unitsPerBatch : 0), 0);
+    return { id: String(idx), cost };
+  });
+  const oh = d.overhead || {};
+  const ohItems = [
+    { id: "electric", cost: num(oh.electric) },
+    { id: "water", cost: num(oh.water) },
+    { id: "allowance", cost: num(oh.allowance ?? oh.gas) },
+    { id: "rent", cost: num(oh.rent) },
+    { id: "shipping", cost: num(oh.shipping) }
+  ];
+  const sum = (items) => items.reduce((s, i) => s + i.cost, 0);
+  return {
+    rawItems, packItems, laborItems, ohItems,
+    raw: sum(rawItems), pack: sum(packItems), labor: sum(laborItems), overhead: sum(ohItems)
+  };
+}
+
+/* ต้นทุนจริงตามผลผลิตจริง (Actual Cost) — เทียบเคียงกับ calcYield() ในหน้ารายละเอียดต้นทุน
+   ใช้ standardOutput/actualGoodOutput (หรือค่าเฉลี่ยจาก productionBatches) + lossIncludeMap
+   เพื่อกระจายต้นทุนของรายการที่ "เกิดขึ้นแล้วก่อนจุดสูญเสีย" ทับจำนวนผลผลิตจริงที่ได้ */
+function computeActualCost(d, itemized) {
+  const mode = d.yieldMode === "average" ? "average" : "current";
+  let std = 0, actual = null;
+  if (mode === "average") {
+    const batches = d.productionBatches || [];
+    if (!batches.length) return null;
+    std = batches.reduce((s, b) => s + num(b.std), 0);
+    actual = batches.reduce((s, b) => s + num(b.actual), 0);
+  } else {
+    std = num(d.standardOutput);
+    if (d.actualGoodOutput === null || d.actualGoodOutput === undefined || d.actualGoodOutput === "") return null;
+    actual = num(d.actualGoodOutput);
+  }
+  if (std <= 0 || actual === 0) return null;
+
+  const lossMap = d.lossIncludeMap || {};
+  const r2 = (n) => Math.round(n * 100) / 100;
+  // หมายเหตุสำคัญ: หน้ารายละเอียดต้นทุนคำนวณ Actual Cost โดยอ่านต้นทุนของแต่ละรายการ (วัตถุดิบ/บรรจุภัณฑ์/ค่าแรง)
+  // จากตัวเลขที่ "ปัดเศษ 2 ตำแหน่งแล้ว" ที่แสดงผลบนหน้าจอ (ไม่ใช่ค่าทศนิยมเต็ม) ก่อนจะนำไปคูณ/หารตามสัดส่วนผลผลิต
+  // จึงต้องปัดเศษต่อรายการแบบเดียวกันตรงนี้ ไม่เช่นนั้นตัวเลขจะเพี้ยนไปเล็กน้อยจากหน้ารายละเอียดต้นทุน
+  // (ค่าโสหุ้ยไม่ต้องปัด เพราะอ่านจากช่องกรอกตรง ๆ ไม่ผ่านการปัดเศษแสดงผล)
+  const split = (items, mapObj, round) => {
+    mapObj = mapObj || {};
+    let incurred = 0, notIncurred = 0;
+    items.forEach(it => {
+      const c = round ? r2(it.cost) : it.cost;
+      if (mapObj[it.id] !== false) incurred += c; else notIncurred += c;
+    });
+    return { incurred, notIncurred };
+  };
+  const scaleUp = (s) => (s.incurred * std / actual) + s.notIncurred;
+
+  const aRaw = scaleUp(split(itemized.rawItems, lossMap.comp, true));
+  const aPack = scaleUp(split(itemized.packItems, lossMap.pack, true));
+  const aLabor = scaleUp(split(itemized.laborItems, lossMap.labor, true));
+  const aOh = scaleUp(split(itemized.ohItems, lossMap.oh, false));
+  return { raw: aRaw, pack: aPack, labor: aLabor, overhead: aOh, total: aRaw + aPack + aLabor + aOh };
+}
+
+function computeCost(d) {
+  const itemized = computeItemizedCost(d);
+  const standardTotal = itemized.raw + itemized.pack + itemized.labor + itemized.overhead;
+  const actual = computeActualCost(d, itemized);
+  const isActual = !!actual;
+  const qtyPerUnit = num(d.qtyPerUnit) || 1;
+
+  // ต้นทุนต่อ "ชิ้น" (ยังไม่คูณ qty) — ใช้เทียบกับราคาขายต่อชิ้น (sellingPrice) เพื่อคำนวณ Gross Margin
+  // ให้ตรงกับสูตรเดียวกับหน้ารายละเอียดต้นทุนทุกประการ
+  const rawPerPiece = isActual ? actual.raw : itemized.raw;
+  const packPerPiece = isActual ? actual.pack : itemized.pack;
+  const laborPerPiece = isActual ? actual.labor : itemized.labor;
+  const overheadPerPiece = isActual ? actual.overhead : itemized.overhead;
+  const totalPerPiece = isActual ? actual.total : standardTotal;
+
+  // ต้นทุนต่อ "หน่วยขาย" (คูณจำนวนชิ้น/หน่วยขายแล้ว) — ใช้แสดงในคอลัมน์ต้นทุนจริง/เทียบ NPD
+  const raw = rawPerPiece * qtyPerUnit;
+  const pack = packPerPiece * qtyPerUnit;
+  const labor = laborPerPiece * qtyPerUnit;
+  const overhead = overheadPerPiece * qtyPerUnit;
+  const total = totalPerPiece * qtyPerUnit;
+
+  const hasRecipe = (d.components || []).some(c => (c.ingredients || []).length > 0) || (d.packaging || []).length > 0;
+  const sellingPrice = num(d.sellingPrice); // ราคาขายต่อหน่วยขาย
+  const netPrice = computeNetPrice(d, sellingPrice); // ราคาสุทธิต่อหน่วยขาย (หลังหักค่าห้าง/DC/โปรโมชั่น)
+  // Gross Margin % = กำไร (ราคาสุทธิ - ต้นทุนรวมต่อหน่วยขาย) หารด้วย "ราคาขาย" ตั้งต้น ให้ตรงกับหน้ารายละเอียดต้นทุน
+  const margin = sellingPrice > 0 ? ((netPrice - total) / sellingPrice) * 100 : null;
+  return { raw, pack, labor, overhead, total, totalPerPiece, standardTotal: standardTotal * qtyPerUnit, isActual, hasRecipe, margin, netPrice, qtyPerUnit };
+}
+
+function statusOf(d) {
+  return d.saleStatus === "discontinued" ? "discontinued" : "active";
+}
+
+/* ---------------------------- จัดกลุ่ม ห้าง + รหัส ---------------------------- */
+function buildGroups() {
+  const map = new Map();
+  let activeTotal = 0;
+  products.forEach(d => {
+    if (statusOf(d) !== "active") return;           // เฉพาะสินค้าที่ขายอยู่
+    activeTotal++;
+    const term = findTerm(d.tradeTermId);
+    const store = term ? (term.store || "(ไม่มีชื่อห้าง)") : "— ไม่ระบุห้าง —";
+    const code = term ? (term.vendorCode || "-") : "-";
+    const key = store + "||" + code;
+    if (!map.has(key)) map.set(key, { key, store, code, types: new Set(), items: [], skipped: 0 });
+    const g = map.get(key);
+    if (term && term.productType) g.types.add(term.productType);
+    const cost = computeCost(d);
+    if (!cost.hasRecipe || cost.margin === null) { g.skipped++; return; }  // ยังไม่มีสูตร/ราคาขาย = คิด Mg. ไม่ได้
+    g.items.push({ d, cost, margin: cost.margin });
+  });
+  groups = [...map.values()].filter(g => g.items.length || g.skipped).sort((a, b) =>
+    a.store.localeCompare(b.store, "th") || a.code.localeCompare(b.code, "th", { numeric: true }));
+  groups.forEach((g, i) => {
+    g.id = "grp" + i;
+    const ms = g.items.map(x => x.margin);
+    g.avg = ms.length ? ms.reduce((s, v) => s + v, 0) / ms.length : null;
+    g.max = ms.length ? Math.max(...ms) : null;
+    g.min = ms.length ? Math.min(...ms) : null;
+    const byDesc = [...g.items].sort((a, b) => b.margin - a.margin);
+    g.top = byDesc.slice(0, 10);
+    g.bottom = [...g.items].sort((a, b) => a.margin - b.margin).slice(0, 10);
+  });
+}
+
+function pill(m) {
+  if (m === null || m === undefined) return `<span class="pill pill-gray">-</span>`;
+  return `<span class="pill ${m >= 0 ? "pill-green" : "pill-red"}">${fmt(m)}%</span>`;
+}
+
+let selectedKey = "";
+const groupLabel = (g) => g.store + (g.code && g.code !== "-" ? " · " + g.code : "");
+
+function rankTable(list, showStore) {
+  if (!list.length) return `<div class="muted" style="font-size:12.5px;">ไม่มีสินค้า</div>`;
+  return `<div class="table-wrap"><table class="rank-table">
+    <thead><tr><th class="rank-no">#</th><th>สินค้า</th>${showStore ? "<th>ห้าง/รหัส</th>" : ""}<th class="num">ราคาขาย</th><th class="num">ต้นทุน</th><th class="num">Mg.</th></tr></thead>
+    <tbody>${list.map((x, i) => `
+      <tr>
+        <td class="rank-no">${i + 1}</td>
+        <td><a href="cost-detail.html?id=${x.d.id}" style="text-decoration:none;"><div class="product-name">${escapeHtml(x.d.name || "(ไม่มีชื่อ)")}</div></a><div class="product-code">${escapeHtml(x.d.code || "-")}</div></td>
+        ${showStore ? `<td style="font-size:12px;">${escapeHtml(x.store)}${x.code && x.code !== "-" ? `<div class="muted" style="font-size:11px;">${escapeHtml(x.code)}</div>` : ""}</td>` : ""}
+        <td class="num">${fmt(num(x.d.sellingPrice))}</td>
+        <td class="num">${fmt(x.cost.total)}</td>
+        <td class="num">${pill(x.margin)}</td>
+      </tr>`).join("")}</tbody></table></div>`;
+}
+
+function render() {
+  const gsSel = selectedKey ? groups.filter(g => g.key === selectedKey) : groups;
+  const items = gsSel.flatMap(g => g.items.map(x => ({ ...x, store: g.store, code: g.code })));
+  const skipped = gsSel.reduce((s, g) => s + g.skipped, 0);
+
+  // KPI
+  const ms = items.map(x => x.margin);
+  $("statCount").textContent = items.length;
+  $("statSkipped").textContent = skipped ? `ไม่รวม ${skipped} รายการ (ยังไม่มีสูตร/ราคาขาย)` : "";
+  $("statAvg").innerHTML = ms.length ? pill(ms.reduce((s, v) => s + v, 0) / ms.length) : "-";
+  $("statMax").textContent = ms.length ? fmt(Math.max(...ms)) + "%" : "-";
+  $("statMin").textContent = ms.length ? fmt(Math.min(...ms)) + "%" : "-";
+
+  // เลือกห้าง
+  const sel = groups.find(g => g.key === selectedKey);
+  $("selChip").style.display = sel ? "inline-flex" : "none";
+  if (sel) $("selChipText").textContent = groupLabel(sel);
+  $("groupFilter").value = selectedKey;
+  $("scopeHi").textContent = $("scopeLo").textContent = sel ? "— " + groupLabel(sel) : "— ทุกห้าง";
+
+  // แท่งเฉลี่ย Mg. รายห้าง/รหัส
+  const withData = groups.filter(g => g.items.length).sort((a, b) => b.avg - a.avg);
+  const maxAbs = Math.max(1, ...withData.map(g => Math.abs(g.avg)));
+  $("emptyState").style.display = withData.length ? "none" : "block";
+  $("barList").innerHTML = withData.map(g => `
+    <div class="bar-row ${g.key === selectedKey ? "sel" : ""}" data-key="${escapeHtml(g.key)}" title="คลิกเพื่อดู Top 10 ของห้างนี้">
+      <div class="bar-label">${escapeHtml(g.store)}<small>${g.code && g.code !== "-" ? "รหัส " + escapeHtml(g.code) + " · " : ""}${g.items.length} รายการ${g.types.size ? " · " + escapeHtml([...g.types].join(", ")) : ""}</small></div>
+      <div class="bar-track"><div class="bar-fill ${g.avg >= 0 ? "pos" : "neg"}" style="width:${Math.max(2, Math.abs(g.avg) / maxAbs * 100)}%"></div></div>
+      <div class="bar-val" style="color:${g.avg >= 0 ? "var(--green-dark)" : "var(--red-dark)"};">${fmt(g.avg)}%</div>
+    </div>`).join("");
+  document.querySelectorAll("#barList .bar-row").forEach(row => {
+    row.addEventListener("click", () => { selectedKey = selectedKey === row.dataset.key ? "" : row.dataset.key; render(); });
+  });
+
+  // Top 10
+  const hi = [...items].sort((a, b) => b.margin - a.margin).slice(0, 10);
+  const lo = [...items].sort((a, b) => a.margin - b.margin).slice(0, 10);
+  $("topHi").innerHTML = rankTable(hi, !selectedKey);
+  $("topLo").innerHTML = rankTable(lo, !selectedKey);
+}
+
+function fillGroupFilter() {
+  $("groupFilter").innerHTML = `<option value="">ทุกห้าง/รหัส</option>` +
+    groups.filter(g => g.items.length).map(g => `<option value="${escapeHtml(g.key)}">${escapeHtml(groupLabel(g))}</option>`).join("");
+}
+$("groupFilter").addEventListener("change", (e) => { selectedKey = e.target.value; render(); });
+$("clearSel").addEventListener("click", () => { selectedKey = ""; render(); });
+
+(async function init() {
+  await loadTradeTerms();
+  await loadProducts();
+  buildGroups();
+  fillGroupFilter();
+  render();
+})();
+</script>
+
+</body>
+</html>
