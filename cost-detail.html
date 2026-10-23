@@ -367,6 +367,7 @@
   <a href="#" class="active">รายละเอียดต้นทุน</a>
   <a href="materials.html">คลังวัตถุดิบ/บรรจุภัณฑ์</a>
   <a href="trade-terms.html">เงื่อนไขห้าง</a>
+  <a href="margin-summary.html">สรุป Mg. รายห้าง</a>
   <a href="overhead-allocation.html">ปันส่วนโสหุ้ย</a>
   <a href="recipes.html">คลังสูตร</a>
   <a href="labor-steps.html">คลังขั้นตอนการทำ</a>
@@ -454,6 +455,13 @@
               <select id="f_tradeterm" style="max-width:280px; margin-left:auto;">
                 <option value="">— ไม่ระบุ —</option>
               </select>
+            </td>
+          </tr>
+          <tr class="editable" id="row_dcsel" style="display:none;">
+            <td>เรท DC<span style="display:block; font-size:10.5px; color:var(--gray-text); font-weight:400;" id="dcRateHint"></span></td>
+            <td colspan="2" style="text-align:right;">
+              <select id="f_dcBox" style="max-width:150px; display:inline-block;"></select>
+              <select id="f_dcDest" style="max-width:190px; display:inline-block; margin-left:6px;"></select>
             </td>
           </tr>
           <tr class="editable">
@@ -1032,11 +1040,52 @@ function termDeductBaht(term) {
     .filter(d => d.unit === "baht")
     .reduce((s, d) => s + num(d.value), 0);
 }
+function dcRatePerBox(term, boxName, destName) {
+  const dc = term.dcCost || {};
+  const fallback = num(dc.dcDispatchFeePerCase);
+  const rt = dc.rateTable;
+  if (!rt || !rt.dcs || !rt.boxes) return fallback;
+  const box = rt.boxes.find(b => b.name === boxName);
+  if (!box) return fallback;
+  let sumRV = 0, sumV = 0, sumR = 0, n = 0;
+  rt.dcs.forEach(d => {
+    const r = box.rates ? box.rates[d.id] : undefined;
+    if (r === undefined || r === null) return;          // เว้นว่าง = ไม่ส่ง DC นั้น
+    if (destName && d.name !== destName) return;        // เลือก DC ปลายทางเฉพาะ
+    const v = num(d.volume);
+    sumRV += num(r) * v; sumV += v; sumR += num(r); n++;
+  });
+  if (!n) return fallback;
+  return sumV > 0 ? sumRV / sumV : sumR / n;            // เฉลี่ยถ่วงน้ำหนักตามปริมาณส่ง
+}
 function termDcCostPerUnit(term, packPerBox) {
   const dc = term.dcCost || {};
   const basketPerBox = num(dc.basketFeePerUnit);
-  const dispatchPerBox = num(dc.dcDispatchFeePerCase);
+  const dispatchPerBox = dcRatePerBox(term, $("f_dcBox").value, $("f_dcDest").value);
   return packPerBox > 0 ? (basketPerBox + dispatchPerBox) / packPerBox : 0;
+}
+let dcSelTermId = null;
+function syncDcSelectors(term) {
+  const row = $("row_dcsel");
+  const rt = term && term.dcCost && term.dcCost.rateTable;
+  if (!rt || !rt.boxes || !rt.boxes.length) { row.style.display = "none"; dcSelTermId = null; return; }
+  row.style.display = "";
+  if (dcSelTermId !== term.id) {
+    dcSelTermId = term.id;
+    const boxSel = $("f_dcBox"), destSel = $("f_dcDest");
+    boxSel.innerHTML = `<option value="">— เลือกขนาดกล่อง —</option>` + rt.boxes.map(b => `<option value="${escapeAttr(b.name)}">${escapeHtml(b.name)}</option>`).join("");
+    destSel.innerHTML = `<option value="">เฉลี่ยตามปริมาณส่งทุก DC</option>` + rt.dcs.map(d => `<option value="${escapeAttr(d.name)}">${escapeHtml(d.name)}</option>`).join("");
+  }
+  const box = rt.boxes.find(b => b.name === $("f_dcBox").value);
+  let hint = "";
+  if (!box) hint = "ยังไม่เลือกขนาดกล่อง — ใช้ค่ากระจาย DC (บาท/หีบ) ของเงื่อนไขห้างแทน";
+  else {
+    const dest = $("f_dcDest").value;
+    const dcObj = dest ? rt.dcs.find(d => d.name === dest) : null;
+    if (dcObj && (box.rates || {})[dcObj.id] === undefined) hint = `⚠ ${box.name} ไม่ส่ง ${dest} — ใช้ค่ากระจาย DC แทน`;
+    else hint = `เรท DC ที่ใช้ ${fmt(dcRatePerBox(term, box.name, dest))} บาท/หีบ`;
+  }
+  $("dcRateHint").textContent = hint;
 }
 
 /* ---------------------------- ส่วนประกอบ (component) builders ---------------------------- */
@@ -1564,6 +1613,7 @@ function calcSummary() {
 
   let netPrice = sellPrice;
 
+  syncDcSelectors(term);
   if (term) {
     const packPerBox = num($("f_pack").value);
     const deductPct = termDeductPercent(term);
@@ -2035,7 +2085,9 @@ $("addLaborGroupBtn").addEventListener("click", () => { makeLaborGroup(); calcSu
  "npd_raw_input", "npd_pack_input", "npd_labor_input", "npd_oh_input", "npd_other_input", "f_qtyPerUnit"]
   .forEach(id => $(id).addEventListener("input", calcSummary));
 
-$("f_tradeterm").addEventListener("change", calcSummary);
+$("f_tradeterm").addEventListener("change", () => { $("f_dcBox").value = ""; $("f_dcDest").value = ""; dcSelTermId = null; calcSummary(); });
+$("f_dcBox").addEventListener("change", calcSummary);
+$("f_dcDest").addEventListener("change", calcSummary);
 $("f_promoUnit").addEventListener("change", calcSummary);
 
 $("pullNpdBtn").addEventListener("click", () => {
@@ -2086,6 +2138,8 @@ function collectData() {
     },
     sellingPrice: num($("f_sellprice").value),
     tradeTermId: $("f_tradeterm").value || "",
+    dcBox: $("f_dcBox").value || "",
+    dcDest: $("f_dcDest").value || "",
     promoValue: num($("f_promoValue").value),
     promoUnit: $("f_promoUnit").value,
     standardOutput: num($("f_stdOutput").value),
@@ -2175,6 +2229,7 @@ $("exportExcelBtn").addEventListener("click", () => {
     infoRows.push(["เงื่อนไขห้าง", s.term.store + (s.term.productType ? ` - ${s.term.productType}` : ""), ""]);
     infoRows.push([`หักตามเงื่อนไขห้าง (${fmt(deductPct)}% + ${fmt(deductBaht)}฿)`, deductAmount, deductAmount]);
     infoRows.push(["ค่า DC", dcCost, dcCost]);
+    if ($("f_dcBox").value) infoRows.push(["เรท DC: " + $("f_dcBox").value + " / " + ($("f_dcDest").value || "เฉลี่ยทุก DC"), "", ""]);
   }
   if (s.promoValue) {
     const promoLabel = s.promoUnit === "percent" ? `Promotion ห้าง (${fmt(s.promoValue)}%)` : `Promotion ห้าง (${fmt(s.promoValue)}฿)`;
@@ -2371,6 +2426,10 @@ async function loadExisting() {
   $("f_sellprice").value = d.sellingPrice || 0;
   fillTradeTermSelect();
   $("f_tradeterm").value = d.tradeTermId || "";
+  dcSelTermId = null;
+  syncDcSelectors(termsCache.find(t => t.id === d.tradeTermId) || null);
+  if (d.dcBox) $("f_dcBox").value = d.dcBox;
+  if (d.dcDest) $("f_dcDest").value = d.dcDest;
   $("f_promoValue").value = d.promoValue || 0;
   $("f_promoUnit").value = d.promoUnit || "percent";
   const oh = d.overhead || {};
