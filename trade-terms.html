@@ -123,6 +123,13 @@
   .row-del{background:none; border:none; color:var(--red); cursor:pointer; font-size:16px; line-height:1; padding:4px;}
   .row-del:hover{color:var(--red-dark);}
 
+  .rate-wrap{overflow-x:auto; border:1px solid var(--border, #e5e7eb); border-radius:8px;}
+  .rate-table{min-width:560px;}
+  .rate-table th, .rate-table td{padding:6px 8px; vertical-align:middle;}
+  .rate-table input[type=text], .rate-table input[type=number]{min-width:84px;}
+  .rate-table tfoot td{background:#f7f5ef; font-weight:600;}
+  .rate-hd{display:flex; gap:4px; align-items:center;}
+  .rate-note{font-size:12px; color:#6b7280; margin:6px 0 0;}
   .section-label{
     font-size:12.5px; font-weight:600; color:var(--navy); margin:18px 0 8px;
     padding-bottom:6px; border-bottom:1px solid var(--gray-border);
@@ -146,6 +153,7 @@
   <a href="cost-detail.html">รายละเอียดต้นทุน</a>
   <a href="materials.html">คลังวัตถุดิบ/บรรจุภัณฑ์</a>
   <a href="#" class="active">เงื่อนไขห้าง</a>
+  <a href="margin-summary.html">สรุป Mg. รายห้าง</a>
   <a href="overhead-allocation.html">ปันส่วนโสหุ้ย</a>
   <a href="recipes.html">คลังสูตร</a>
   <a href="labor-steps.html">คลังขั้นตอนการทำ</a>
@@ -225,6 +233,20 @@
           <input type="number" step="0.01" id="f_dcFee" value="0">
         </div>
       </div>
+
+      <div class="section-label">เรท DC ต่อกล่อง (บาท/หีบ) <span class="hint" style="font-weight:400;">— แก้เมื่อราคาน้ำมันเปลี่ยน • เว้นว่าง = ไม่ส่ง DC นั้น</span></div>
+      <div class="rate-wrap">
+        <table class="rate-table">
+          <thead><tr id="rateHead"></tr></thead>
+          <tbody id="rateBody"></tbody>
+          <tfoot><tr id="rateFoot"></tr></tfoot>
+        </table>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+        <button class="add-row-btn" id="addDcColBtn" type="button">+ เพิ่ม DC</button>
+        <button class="add-row-btn" id="addBoxRowBtn" type="button">+ เพิ่มขนาดกล่อง</button>
+      </div>
+      <p class="rate-note">ในคำขอ เลือก DC ปลายทาง หรือเว้นว่างเพื่อเฉลี่ยตามปริมาณส่งของแต่ละ DC · ถ้ามีตารางเรท ระบบจะใช้เรทนี้แทน "ค่ากระจาย DC" ด้านบน</p>
 
       <div class="section-label">Delivery Penalty</div>
       <div class="field-grid-2">
@@ -368,6 +390,76 @@ function calcDeductTotal() {
   return { totalPct, totalBaht };
 }
 
+/* ---------------------------- ตารางเรท DC ต่อกล่อง ---------------------------- */
+let rateDcs = [];    // [{id, name, volume}]
+let rateBoxes = [];  // [{id, name, rates:{dcId: number|null}}]
+let rateSeq = 0;
+const DEFAULT_RATE_BOXES = ["BOX A", "BOX A3", "BOX B", "BOX B3"];
+const DEFAULT_RATE_DCS = ["ลำลูกกา", "ขอนแก่น", "ลำพูน", "สุราษฎร์ธานี"];
+
+function setRateTable(rt) {
+  rateDcs = []; rateBoxes = [];
+  if (rt && Array.isArray(rt.dcs) && rt.dcs.length) {
+    const idMap = {};
+    rt.dcs.forEach(d => { const id = "dc" + (++rateSeq); idMap[d.id] = id; rateDcs.push({ id, name: d.name || "", volume: d.volume ?? "" }); });
+    (rt.boxes || []).forEach(b => {
+      const rates = {};
+      Object.keys(b.rates || {}).forEach(k => { if (idMap[k] && b.rates[k] !== null && b.rates[k] !== "") rates[idMap[k]] = b.rates[k]; });
+      rateBoxes.push({ id: "bx" + (++rateSeq), name: b.name || "", rates });
+    });
+  } else {
+    DEFAULT_RATE_DCS.forEach(n => rateDcs.push({ id: "dc" + (++rateSeq), name: n, volume: "" }));
+    DEFAULT_RATE_BOXES.forEach(n => rateBoxes.push({ id: "bx" + (++rateSeq), name: n, rates: {} }));
+  }
+  renderRateTable();
+}
+
+function renderRateTable() {
+  const head = $("rateHead"), body = $("rateBody"), foot = $("rateFoot");
+  head.innerHTML = `<th style="min-width:110px;">ขนาดกล่อง</th>` + rateDcs.map(d => `
+    <th><div class="rate-hd"><input type="text" class="rt-dcname" data-id="${d.id}" value="${escapeAttr(d.name)}" placeholder="ชื่อ DC"><button type="button" class="row-del rt-dcdel" data-id="${d.id}" title="ลบ DC นี้">✕</button></div></th>`).join("") + `<th style="width:30px;"></th>`;
+  body.innerHTML = rateBoxes.map(b => `
+    <tr data-id="${b.id}">
+      <td><input type="text" class="rt-boxname" value="${escapeAttr(b.name)}" placeholder="เช่น BOX A"></td>
+      ${rateDcs.map(d => `<td><input type="number" step="0.01" class="rt-rate" data-dc="${d.id}" value="${b.rates[d.id] ?? ""}"></td>`).join("")}
+      <td><button type="button" class="row-del rt-boxdel" title="ลบขนาดกล่องนี้">✕</button></td>
+    </tr>`).join("");
+  foot.innerHTML = `<td>ปริมาณส่ง/เดือน</td>` + rateDcs.map(d => `<td><input type="number" step="1" class="rt-vol" data-id="${d.id}" value="${d.volume ?? ""}"></td>`).join("") + `<td></td>`;
+
+  head.querySelectorAll(".rt-dcname").forEach(inp => inp.addEventListener("input", () => { rateDcs.find(d => d.id === inp.dataset.id).name = inp.value; }));
+  head.querySelectorAll(".rt-dcdel").forEach(btn => btn.addEventListener("click", () => {
+    const id = btn.dataset.id;
+    rateDcs = rateDcs.filter(d => d.id !== id);
+    rateBoxes.forEach(b => delete b.rates[id]);
+    renderRateTable();
+  }));
+  foot.querySelectorAll(".rt-vol").forEach(inp => inp.addEventListener("input", () => { rateDcs.find(d => d.id === inp.dataset.id).volume = inp.value; }));
+  body.querySelectorAll("tr").forEach(tr => {
+    const box = rateBoxes.find(b => b.id === tr.dataset.id);
+    tr.querySelector(".rt-boxname").addEventListener("input", (e) => { box.name = e.target.value; });
+    tr.querySelectorAll(".rt-rate").forEach(inp => inp.addEventListener("input", () => {
+      if (inp.value === "") delete box.rates[inp.dataset.dc]; else box.rates[inp.dataset.dc] = num(inp.value);
+    }));
+    tr.querySelector(".rt-boxdel").addEventListener("click", () => {
+      rateBoxes = rateBoxes.filter(b => b.id !== box.id);
+      renderRateTable();
+    });
+  });
+}
+
+function collectRateTable() {
+  const dcs = rateDcs.filter(d => d.name.trim() !== "");
+  const boxes = rateBoxes.filter(b => b.name.trim() !== "");
+  const anyRate = boxes.some(b => dcs.some(d => b.rates[d.id] !== undefined && b.rates[d.id] !== ""));
+  if (!dcs.length || !boxes.length || !anyRate) return null; // ไม่มีเรทเลย = ไม่บันทึกตาราง
+  return {
+    dcs: dcs.map(d => ({ id: d.id, name: d.name.trim(), volume: d.volume === "" ? 0 : num(d.volume) })),
+    boxes: boxes.map(b => ({ name: b.name.trim(), rates: Object.fromEntries(dcs.filter(d => b.rates[d.id] !== undefined && b.rates[d.id] !== "").map(d => [d.id, num(b.rates[d.id])])) }))
+  };
+}
+$("addDcColBtn").addEventListener("click", () => { rateDcs.push({ id: "dc" + (++rateSeq), name: "", volume: "" }); renderRateTable(); });
+$("addBoxRowBtn").addEventListener("click", () => { rateBoxes.push({ id: "bx" + (++rateSeq), name: "", rates: {} }); renderRateTable(); });
+
 /* ---------------------------- form load / reset ---------------------------- */
 function resetForm() {
   editingId = null;
@@ -381,6 +473,7 @@ function resetForm() {
   $("f_dcFee").value = 0;
   $("f_deliveryPenalty").value = 0;
   $("f_note").value = "";
+  setRateTable(null);
   deductItems = [];
   $("deductWrap").innerHTML = "";
   addDeductItem();
@@ -401,6 +494,7 @@ function loadIntoForm(t) {
   $("f_dcFee").value = dc.dcDispatchFeePerCase ?? 0;
   $("f_deliveryPenalty").value = t.deliveryPenaltyPercent ?? 0;
   $("f_note").value = t.note || "";
+  setRateTable(dc.rateTable || null);
 
   deductItems = [];
   $("deductWrap").innerHTML = "";
@@ -427,7 +521,8 @@ function collectFormData() {
       .map(d => ({ name: d.name.trim(), value: num(d.value), unit: d.unit || "percent" })),
     dcCost: {
       basketFeePerUnit: num($("f_basketFee").value),
-      dcDispatchFeePerCase: num($("f_dcFee").value)
+      dcDispatchFeePerCase: num($("f_dcFee").value),
+      rateTable: collectRateTable()
     },
     deliveryPenaltyPercent: num($("f_deliveryPenalty").value),
     note: $("f_note").value.trim()
