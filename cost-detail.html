@@ -1273,7 +1273,7 @@ function renderLaborGroup(group) {
           <th class="num" style="width:14%">เวลา (นาที)</th>
           <th class="num" style="width:12%">จำนวนคน</th>
           <th class="num" style="width:14%">ชิ้น/แบตช์</th>
-          <th class="num" style="width:14%">ค่าแรง/ชิ้น</th><th style="width:26px"></th>
+          <th class="num" style="width:14%">ค่าแรง/ชิ้น</th><th style="width:84px"></th>
         </tr></thead>
         <tbody class="g-steps"></tbody>
         <tfoot><tr><td colspan="4">รวมค่าแรง (กลุ่มนี้)</td><td class="num"><b class="g-subtotal">0.00</b></td><td></td></tr></tfoot>
@@ -1339,7 +1339,10 @@ function renderLaborStep(group, div, row) {
     <td><input type="number" step="1" class="s-headcount" value="${row.headcount || 1}"></td>
     <td><input type="number" step="1" class="s-unitsPerBatch" value="${row.unitsPerBatch || 1}"></td>
     <td><input type="text" class="s-cost" value="0.00" readonly></td>
-    <td><button class="row-del s-del" title="ลบแถว">✕</button></td>
+    <td style="white-space:nowrap;">
+      <span class="s-handle" title="ลากเพื่อสลับลำดับ" style="cursor:grab;color:#8a94a0;padding:0 4px;user-select:none;">⠿</span>
+      <button class="row-del s-up" title="เลื่อนขึ้น" style="color:#5b6670;font-size:12px;">▲</button><button class="row-del s-down" title="เลื่อนลง" style="color:#5b6670;font-size:12px;">▼</button><button class="row-del s-del" title="ลบแถว">✕</button>
+    </td>
   `;
   div.querySelector(".g-steps").appendChild(tr);
 
@@ -1356,6 +1359,53 @@ function renderLaborStep(group, div, row) {
     tr.remove();
     calcLaborGroups(); calcSummary();
   });
+  tr.querySelector(".s-up").addEventListener("click", () => moveLaborStep(group, div, row.id, -1));
+  tr.querySelector(".s-down").addEventListener("click", () => moveLaborStep(group, div, row.id, 1));
+
+  // ลากสลับแถว (จับที่ ⠿)
+  const handle = tr.querySelector(".s-handle");
+  handle.addEventListener("mousedown", () => { tr.draggable = true; });
+  tr.addEventListener("dragstart", (e) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", row.id);
+    tr.classList.add("dragging"); tr.style.opacity = "0.4";
+  });
+  tr.addEventListener("dragend", () => {
+    tr.draggable = false; tr.classList.remove("dragging"); tr.style.opacity = "";
+    div.querySelectorAll(".g-steps tr").forEach(r => r.style.boxShadow = "");
+  });
+  tr.addEventListener("dragover", (e) => {
+    const dragging = div.querySelector(".g-steps tr.dragging");
+    if (!dragging || dragging === tr) return;
+    e.preventDefault();
+    tr.style.boxShadow = "0 2px 0 0 #2f80ed inset";
+  });
+  tr.addEventListener("dragleave", () => { tr.style.boxShadow = ""; });
+  tr.addEventListener("drop", (e) => {
+    e.preventDefault();
+    tr.style.boxShadow = "";
+    const fromId = e.dataTransfer.getData("text/plain");
+    const from = group.steps.findIndex(s => s.id === fromId);
+    const to = group.steps.findIndex(s => s.id === row.id);
+    if (from < 0 || to < 0 || from === to) return;
+    const [moved] = group.steps.splice(from, 1);
+    group.steps.splice(to, 0, moved);
+    reorderLaborStepRows(group, div);
+  });
+}
+
+function reorderLaborStepRows(group, div) {
+  const tbody = div.querySelector(".g-steps");
+  group.steps.forEach(st => { const r = document.getElementById(st.id); if (r) tbody.appendChild(r); });
+  calcLaborGroups(); calcSummary();
+}
+
+function moveLaborStep(group, div, stepId, dir) {
+  const i = group.steps.findIndex(s => s.id === stepId);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= group.steps.length) return;
+  [group.steps[i], group.steps[j]] = [group.steps[j], group.steps[i]];
+  reorderLaborStepRows(group, div);
 }
 
 function wireRow(tr, row, arr, recalc) {
@@ -2289,7 +2339,6 @@ $("saveBtn").addEventListener("click", async () => {
       history.replaceState(null, "", url);
     }
     $("statusPill").textContent = "บันทึกแล้ว ✓";
-    setTimeout(() => { location.href = "dashboard.html"; }, 700);
   } catch (e) {
     console.error(e);
     alert("บันทึกไม่สำเร็จ: " + e.message);
