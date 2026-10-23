@@ -159,6 +159,7 @@
   <a href="cost-detail.html">รายละเอียดต้นทุน</a>
   <a href="materials.html">คลังวัตถุดิบ/บรรจุภัณฑ์</a>
   <a href="trade-terms.html">เงื่อนไขห้าง</a>
+  <a href="margin-summary.html">สรุป Mg. รายห้าง</a>
   <a href="overhead-allocation.html">ปันส่วนโสหุ้ย</a>
   <a href="recipes.html">คลังสูตร</a>
   <a href="labor-steps.html">คลังขั้นตอนการทำ</a>
@@ -219,6 +220,24 @@ import {
 import { db } from "./firebase-config.js";
 
 const PRODUCTS_COL = "products";
+function dcRatePerBox(term, boxName, destName) {
+  const dc = term.dcCost || {};
+  const fallback = num(dc.dcDispatchFeePerCase);
+  const rt = dc.rateTable;
+  if (!rt || !rt.dcs || !rt.boxes) return fallback;
+  const box = rt.boxes.find(b => b.name === boxName);
+  if (!box) return fallback;
+  let sumRV = 0, sumV = 0, sumR = 0, n = 0;
+  rt.dcs.forEach(d => {
+    const r = box.rates ? box.rates[d.id] : undefined;
+    if (r === undefined || r === null) return;          // เว้นว่าง = ไม่ส่ง DC นั้น
+    if (destName && d.name !== destName) return;        // เลือก DC ปลายทางเฉพาะ
+    const v = num(d.volume);
+    sumRV += num(r) * v; sumV += v; sumR += num(r); n++;
+  });
+  if (!n) return fallback;
+  return sumV > 0 ? sumRV / sumV : sumR / n;            // เฉลี่ยถ่วงน้ำหนักตามปริมาณส่ง
+}
 const TERMS_COL = "tradeTerms";
 const $ = (id) => document.getElementById(id);
 const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
@@ -267,7 +286,7 @@ function computeNetPrice(d, sellingPrice) {
       .reduce((s, x) => s + num(x.value), 0);
     const deductAmount = sellingPrice * (deductPct / 100) + deductBaht;
     const dc = term.dcCost || {};
-    const dcCost = packPerBox > 0 ? (num(dc.basketFeePerUnit) + num(dc.dcDispatchFeePerCase)) / packPerBox : 0;
+    const dcCost = packPerBox > 0 ? (num(dc.basketFeePerUnit) + dcRatePerBox(term, d.dcBox, d.dcDest)) / packPerBox : 0;
     netPrice -= (deductAmount + dcCost);
   }
   const promoValue = num(d.promoValue);
